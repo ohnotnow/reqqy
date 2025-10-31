@@ -37,6 +37,11 @@ class Conversation extends Model
         return $this->hasMany(Message::class);
     }
 
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class);
+    }
+
     public function isSignedOff(): bool
     {
         return $this->signed_off_at !== null;
