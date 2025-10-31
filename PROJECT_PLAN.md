@@ -39,6 +39,8 @@ The idea is to let the user talk through the idea with an LLM, capture the requi
 
 This is an MVP focused on the core user journey: conversational requirements gathering, LLM-generated PRD creation, and admin notification. The system acts as a capture and generation tool - admins can copy/paste or download documents to take forward in their own workflows. No document versioning or complex revision tracking at this stage.
 
+Remember: You have the laravel boost MCP tool which was written by the creators of Laravel and has excellent documentation for the core tech stack along with other helpful features.
+
 ### MVP Development Tasks
 
 - [X] Set up authentication and user management
