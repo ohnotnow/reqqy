@@ -53,7 +53,7 @@
                 <flux:card class="hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer h-full">
                     <flux:heading size="lg">{{ $conversation->created_at->format('d/m/Y H:i') }}</flux:heading>
                     <flux:text>
-                        {{ Str::limit($conversation->messages->first()->content, 50, '...') }}
+                        {{ Str::limit($conversation->messages->first()?->content, 50, '...') }}
                     </flux:text>
                 </flux:card>
             </a>
