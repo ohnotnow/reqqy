@@ -52,11 +52,12 @@ Remember: You have the laravel boost MCP tool which was written by the creators 
   - [X] Message model (for conversation messages)
   - [X] Document model (for generated PRDs)
   - [X] Seeder created (TestDataSeeder)
-- [ ] Build initial selection interface
-  - [ ] Dashboard showing "New Feature" vs "New Application" choice
-  - [ ] Application picker for feature requests
+- [X] Build initial selection interface
+  - [X] Dashboard showing "New Feature" vs "New Application" choice (HomePage component)
+  - [X] Application picker for feature requests (Flux flyout modal with searchable select)
+  - [X] Unified routing to ConversationPage with optional application_id parameter
 - [ ] Implement conversation flow
-  - [ ] Livewire component for chat interface
+  - [ ] ConversationPage Livewire component for chat interface
   - [ ] Integration with Prism for LLM calls
   - [ ] Message persistence and display
   - [ ] "Sign Off" button to complete conversation
@@ -72,3 +73,21 @@ Remember: You have the laravel boost MCP tool which was written by the creators 
   - [ ] Write Pest tests for core flows
   - [ ] UI/UX refinement with FluxUI
   - [ ] Error handling and edge cases
+
+## Work Done (Session Notes)
+
+### 2025-10-31 - Initial Dashboard Implementation
+- ✅ Created HomePage component with two-card layout for "New Feature" and "New Application" choices
+- ✅ Implemented Flux flyout modal for application selection (new feature flow)
+- ✅ Added searchable Flux select component with Application model integration
+- ✅ Created ConversationPage component (placeholder for chat interface)
+- ✅ Set up unified routing: both flows redirect to `/conversation` with optional `?application_id=X` query param
+- ✅ Cleaned up: removed intermediate NewFeaturePage/NewApplicationPage components in favor of modal approach
+- 🎨 UX: Direct click for "New Application", modal popup for "New Feature" to select application first
+
+### 2025-10-31 - Conversation Initialization Logic
+- ✅ Implemented ConversationPage mount logic with `#[Url]` attributes for `conversation_id` and `application_id`
+- ✅ Added conversations relationship to User model (with proper `HasMany` return type)
+- ✅ Conversation creation on first visit, reload-safe with existing conversation lookup
+- ✅ Security: Automatic authorization check via `auth()->user()->conversations()->findOrFail()`
+- 📝 Ready for next steps: chat UI, message display, and Prism LLM integration
