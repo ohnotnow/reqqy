@@ -5,6 +5,8 @@ use App\Models\Conversation;
 use App\Models\Document;
 use App\Models\Message;
 use App\Models\User;
+use App\Notifications\NewDocumentCreated;
+use Illuminate\Support\Facades\Notification;
 use Prism\Prism\Facades\Prism;
 use Prism\Prism\Testing\TextResponseFake;
 use Prism\Prism\ValueObjects\Usage;
@@ -14,7 +16,10 @@ use function Pest\Laravel\assertDatabaseHas;
 
 it('generates a PRD document from conversation messages', function () {
     // Arrange
+    Notification::fake();
+
     $user = User::factory()->create();
+    $adminUser = User::factory()->create(['is_admin' => true]);
     $conversation = Conversation::factory()
         ->for($user)
         ->create(['application_id' => null]);
@@ -58,6 +63,10 @@ it('generates a PRD document from conversation messages', function () {
     $document = Document::first();
     expect($document->content)->toContain('Product Requirements Document');
     expect($document->conversation_id)->toBe($conversation->id);
+
+    // Assert notifications sent to admin users only
+    Notification::assertSentTo($adminUser, NewDocumentCreated::class);
+    Notification::assertNotSentTo($user, NewDocumentCreated::class);
 });
 
 it('uses all conversation messages in chronological order', function () {
@@ -129,4 +138,78 @@ it('does not create a document if no messages exist', function () {
     assertDatabaseCount('documents', 1);
     $document = Document::first();
     expect($document->content)->toBe('Generated PRD with no messages');
+});
+
+it('notifies all admin users when a document is created', function () {
+    // Arrange
+    Notification::fake();
+
+    $regularUser = User::factory()->create(['is_admin' => false]);
+    $adminUser1 = User::factory()->create(['is_admin' => true]);
+    $adminUser2 = User::factory()->create(['is_admin' => true]);
+
+    $conversation = Conversation::factory()
+        ->for($regularUser)
+        ->create(['application_id' => null]);
+
+    Message::factory()->create([
+        'conversation_id' => $conversation->id,
+        'user_id' => $regularUser->id,
+        'content' => 'I need an app',
+    ]);
+
+    $fakeResponse = TextResponseFake::make()
+        ->withText('Generated PRD')
+        ->withUsage(new Usage(10, 20));
+
+    Prism::fake([$fakeResponse]);
+
+    // Act
+    $job = new GenerateNewApplicationPrdJob($conversation);
+    $job->handle();
+
+    // Assert - all admin users are notified
+    Notification::assertSentTo($adminUser1, NewDocumentCreated::class);
+    Notification::assertSentTo($adminUser2, NewDocumentCreated::class);
+    Notification::assertNotSentTo($regularUser, NewDocumentCreated::class);
+
+    // Assert notification count
+    Notification::assertCount(2);
+});
+
+it('includes conversation link in notification', function () {
+    // Arrange
+    Notification::fake();
+
+    $adminUser = User::factory()->create(['is_admin' => true]);
+    $conversation = Conversation::factory()
+        ->for($adminUser)
+        ->create(['application_id' => null]);
+
+    Message::factory()->create([
+        'conversation_id' => $conversation->id,
+        'user_id' => $adminUser->id,
+        'content' => 'Test message',
+    ]);
+
+    $fakeResponse = TextResponseFake::make()
+        ->withText('Generated PRD')
+        ->withUsage(new Usage(10, 20));
+
+    Prism::fake([$fakeResponse]);
+
+    // Act
+    $job = new GenerateNewApplicationPrdJob($conversation);
+    $job->handle();
+
+    // Assert - notification includes document with conversation relationship
+    Notification::assertSentTo(
+        $adminUser,
+        NewDocumentCreated::class,
+        function ($notification) use ($conversation) {
+            $document = $notification->document;
+
+            return $document->conversation_id === $conversation->id;
+        }
+    );
 });

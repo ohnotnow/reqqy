@@ -152,6 +152,33 @@ Remember: You have the laravel boost MCP tool which was written by the creators 
 - ✅ All code formatted with Laravel Pint
 - 📝 Next: Admin notifications when Documents are created
 
+### 2025-10-31 - Admin Notifications (TDD Implementation)
+- ✅ **TDD Approach: RED → GREEN → REFACTOR**
+- ✅ Updated tests FIRST with notification assertions (RED phase)
+  - Added `Notification::fake()` to existing tests
+  - Created dedicated test for multiple admin users
+  - Created test for notification content/conversation link
+  - Verified 3 tests failed as expected
+- ✅ Implemented `NewDocumentCreated` notification class
+  - Accepts `Document` model in constructor (uses constructor property promotion)
+  - Implements `ShouldQueue` for background processing
+  - Dynamic subject line based on request type (Feature Request vs New Application)
+  - Generic greeting: "Hello Reqqy Admin!" (avoids complexity with `forenames`/`surname` fields)
+  - Action button with route to conversation page
+  - Stores document/conversation IDs for reference
+- ✅ Created `DocumentObserver` class
+  - Watches for `created` events on Document model
+  - Queries all admin users (`where('is_admin', true)`)
+  - Sends notification to each admin individually
+  - Clean, focused implementation following Single Responsibility Principle
+- ✅ Registered observer in `AppServiceProvider::boot()`
+- ✅ All 5 tests passing with 15 assertions (GREEN phase)
+- ✅ Code formatted with Laravel Pint (REFACTOR phase)
+- 💡 **Key Learning**: Always check migrations/models for actual field names before using them in code
+  - User table has `username`, `email`, `forenames`, `surname` - NOT `name`
+  - Generic greetings avoid complexity and potential errors
+- 📝 Next: Hook up job dispatch in ConversationPage `signOff()` method, then create `GenerateFeatureRequestPrdJob`
+
 ## Next Steps - Admin Notifications
 
 ### Approach

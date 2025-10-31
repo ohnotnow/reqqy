@@ -18,9 +18,13 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'username',
         'email',
         'password',
+        'forenames',
+        'surname',
+        'is_admin',
+        'is_staff',
     ];
 
     /**
@@ -49,5 +53,20 @@ class User extends Authenticatable
     public function conversations(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Conversation::class);
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->is_admin;
+    }
+
+    public function isStaff(): bool
+    {
+        return $this->is_staff;
+    }
+
+    public function getFullNameAttribute(): string
+    {
+        return "{$this->forenames} {$this->surname}";
     }
 }
