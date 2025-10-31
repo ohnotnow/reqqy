@@ -40,6 +40,26 @@
         </flux:card>
     </div>
 
+
+    @if($conversations->count() > 0)
+
+    <flux:separator class="mt-12"/>
+
+    <flux:heading size="lg" class="mt-12">Recent Conversations</flux:heading>
+
+    <div class="grid md:grid-cols-2 gap-6 mt-6">
+        @foreach($conversations as $conversation)
+            <a href="{{ route('conversation', ['conversation_id' => $conversation->id]) }}">
+                <flux:card class="hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer h-full">
+                    <flux:heading size="lg">{{ $conversation->created_at->format('d/m/Y H:i') }}</flux:heading>
+                    <flux:text>
+                        {{ Str::limit($conversation->messages->first()->content, 50, '...') }}
+                    </flux:text>
+                </flux:card>
+            </a>
+        @endforeach
+    </div>
+    @endif
     <flux:modal name="select-application" variant="flyout" class="md:w-96">
         <form wire:submit="startNewFeature" class="space-y-6">
             <div>

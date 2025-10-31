@@ -27,6 +27,7 @@ class HomePage extends Component
     {
         return view('livewire.home-page', [
             'applications' => Application::orderBy('name')->get(),
+            'conversations' => auth()->user()->conversations()->latest()->get(),
         ]);
     }
 }
