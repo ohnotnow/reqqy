@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained('users');
             $table->foreignId('application_id')->nullable()->constrained('applications')->nullOnDelete();
+            $table->timestamp('signed_off_at')->nullable();
             $table->timestamps();
         });
     }

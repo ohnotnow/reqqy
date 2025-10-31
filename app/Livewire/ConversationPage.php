@@ -22,14 +22,14 @@ class ConversationPage extends Component
     public function mount(): void
     {
         if ($this->conversation_id) {
-            $this->conversation = auth()->user()->conversations()->findOrFail($this->conversation_id);
+            $this->conversation = auth()->user()->conversations()->with('messages')->findOrFail($this->conversation_id);
         } else {
             $this->conversation = Conversation::create([
                 'user_id' => auth()->id(),
                 'application_id' => $this->application_id,
             ]);
 
-            $this->conversation_id = $this->conversation->id;
+            $this->redirect(route('conversation', ['conversation_id' => $this->conversation->id]), navigate: true);
         }
     }
 
@@ -65,10 +65,22 @@ class ConversationPage extends Component
         $this->conversation->update([
             'signed_off_at' => now(),
         ]);
+
+        sleep(1);
+
+        Message::create([
+            'conversation_id' => $this->conversation->id,
+            'user_id' => null,
+            'content' => "Thank you for providing your requirements! I'll now generate the documentation for the development team. An admin will review your request and be in touch soon.",
+        ]);
+
+        $this->conversation->load('messages');
     }
 
     protected function generateLlmResponse(): void
     {
+        sleep(1);
+
         Message::create([
             'conversation_id' => $this->conversation->id,
             'user_id' => null,

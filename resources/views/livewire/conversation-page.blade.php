@@ -42,6 +42,21 @@
                     </flux:text>
                 </div>
             @endforelse
+
+            @if($conversation->isSignedOff())
+                <div class="max-w-2xl">
+                    <flux:callout color="purple" icon="link" heading="Conversation Link">
+                        <div class="space-y-2">
+                            <flux:text>You can bookmark or share this link to revisit this conversation:</flux:text>
+                            <flux:input
+                                value="{{ route('conversation', ['conversation_id' => $conversation->id]) }}"
+                                readonly
+                                copyable
+                            />
+                        </div>
+                    </flux:callout>
+                </div>
+            @endif
         </div>
     </div>
 
@@ -51,7 +66,7 @@
                 <div class="flex gap-3">
                     <div class="flex-1">
                         <flux:textarea
-                            wire:model.live="messageContent"
+                            wire:model="messageContent"
                             placeholder="Type your message..."
                             rows="3"
                         />
