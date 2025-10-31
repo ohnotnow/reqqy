@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Conversation;
+use App\Models\Message;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
@@ -16,7 +17,9 @@ class ConversationPage extends Component
 
     public ?Conversation $conversation = null;
 
-    public function mount()
+    public string $messageContent = '';
+
+    public function mount(): void
     {
         if ($this->conversation_id) {
             $this->conversation = auth()->user()->conversations()->findOrFail($this->conversation_id);
@@ -25,9 +28,52 @@ class ConversationPage extends Component
                 'user_id' => auth()->id(),
                 'application_id' => $this->application_id,
             ]);
-            
+
             $this->conversation_id = $this->conversation->id;
         }
+    }
+
+    public function sendMessage(): void
+    {
+        if ($this->conversation->isSignedOff()) {
+            return;
+        }
+
+        $validated = $this->validate([
+            'messageContent' => ['required', 'string', 'max:10000'],
+        ]);
+
+        Message::create([
+            'conversation_id' => $this->conversation->id,
+            'user_id' => auth()->id(),
+            'content' => $validated['messageContent'],
+        ]);
+
+        $this->messageContent = '';
+
+        $this->generateLlmResponse();
+
+        $this->conversation->load('messages');
+    }
+
+    public function signOff(): void
+    {
+        if ($this->conversation->isSignedOff()) {
+            return;
+        }
+
+        $this->conversation->update([
+            'signed_off_at' => now(),
+        ]);
+    }
+
+    protected function generateLlmResponse(): void
+    {
+        Message::create([
+            'conversation_id' => $this->conversation->id,
+            'user_id' => null,
+            'content' => 'Claude is the best',
+        ]);
     }
 
     public function render()
@@ -35,4 +81,3 @@ class ConversationPage extends Component
         return view('livewire.conversation-page');
     }
 }
-
