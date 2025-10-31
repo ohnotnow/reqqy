@@ -56,17 +56,21 @@ Remember: You have the laravel boost MCP tool which was written by the creators 
   - [X] Dashboard showing "New Feature" vs "New Application" choice (HomePage component)
   - [X] Application picker for feature requests (Flux flyout modal with searchable select)
   - [X] Unified routing to ConversationPage with optional application_id parameter
-- [ ] Implement conversation flow
-  - [ ] ConversationPage Livewire component for chat interface
-  - [ ] Integration with Prism for LLM calls
-  - [ ] Message persistence and display
-  - [ ] "Sign Off" button to complete conversation
+- [X] Implement conversation flow
+  - [X] ConversationPage Livewire component for chat interface
+  - [X] Integration with Prism for LLM calls
+  - [X] Message persistence and display
+  - [X] "Sign Off" button to complete conversation
 - [ ] PRD generation
-  - [ ] Create PRD template/format
-  - [ ] Background job to process conversation → PRD
-  - [ ] Store generated PRD as Document
+  - [X] Create PRD template/format (Blade template approach)
+  - [X] Background job to process conversation → PRD (GenerateNewApplicationPrdJob)
+  - [X] Store generated PRD as Document
+  - [ ] Create GenerateFeatureRequestPrdJob
+  - [ ] Hook up job dispatch in signOff() method
 - [ ] Admin notification and document access
-  - [ ] Email notification to admin users
+  - [ ] DocumentObserver to watch for new Documents
+  - [ ] Notification class for admin users
+  - [ ] Make User model Notifiable
   - [ ] Admin view to list conversations/documents
   - [ ] Copy/download functionality for documents
 - [ ] Testing and polish
@@ -122,32 +126,77 @@ Remember: You have the laravel boost MCP tool which was written by the creators 
 - 🎨 UX: Professional sign-off experience with clear next steps and easy conversation bookmarking
 - 📝 Next: Implement PRD generation via queued jobs
 
-## Next Steps - PRD Generation
+### 2025-10-31 - PRD Generation for New Applications
+- ✅ Created Blade-based prompt template system (`resources/views/prompts/new-application-prd.blade.php`)
+  - Uses Laravel's templating engine to render LLM prompts
+  - Loops through conversation messages with proper formatting
+  - Defines comprehensive PRD structure with 9 sections (Executive Summary, Goals, User Personas, Functional Requirements, Non-Functional Requirements, User Stories, Technical Considerations, Out of Scope, Open Questions)
+- ✅ Implemented `GenerateNewApplicationPrdJob` queued job
+  - Accepts `Conversation` model in constructor
+  - Fetches messages chronologically
+  - Renders Blade prompt template with conversation context
+  - Calls Prism (Claude 3.5 Sonnet) with 4096 max tokens
+  - Creates `Document` record with generated PRD content
+- ✅ Updated Document model:
+  - Added fillable fields (`conversation_id`, `name`, `content`)
+  - Added `conversation()` relationship
+- ✅ Updated Conversation model:
+  - Added `documents()` relationship
+- ✅ Comprehensive Pest tests (`tests/Feature/GenerateNewApplicationPrdJobTest.php`):
+  - Tests PRD generation from conversation messages
+  - Tests chronological message ordering
+  - Tests handling of empty conversations
+  - Uses `Prism\Prism\Testing\TextResponseFake` for mocking LLM responses
+  - All 3 tests passing with 8 assertions
+- ✅ Enabled `RefreshDatabase` trait in Pest configuration
+- ✅ All code formatted with Laravel Pint
+- 📝 Next: Admin notifications when Documents are created
+
+## Next Steps - Admin Notifications
 
 ### Approach
-When a user signs off on a conversation, we need to dispatch a queued job to generate a PRD document. The job should:
-
-1. **Determine request type**: Check if `conversation.application_id` is null
-   - If null → New Application request → Dispatch `GenerateNewApplicationPrdJob`
-   - If not null → Feature Request → Dispatch `GenerateFeatureRequestPrdJob`
-
-2. **Both jobs should**:
-   - Read all messages from the conversation
-   - Use Prism to generate a structured PRD (initially with fake/mock content)
-   - Create a new `Document` record linked to the conversation
-   - Store the PRD content in the document
-
-3. **Future enhancements** (Phase Two):
-   - `GenerateFeatureRequestPrdJob`: Spawn background agent to investigate codebase
-   - `GenerateNewApplicationPrdJob`: Spawn background agent to research existing solutions
-   - Email user when PRD is complete (add new Reqqy message to conversation with results)
-   - Email admins to notify them of new PRD ready for review
+When a new `Document` is created, we need to notify all admin users in the system. Using an Observer pattern will keep this logic clean and maintainable as the app grows.
 
 ### Implementation Tasks
-- [ ] Create `GenerateFeatureRequestPrdJob` queued job
-- [ ] Create `GenerateNewApplicationPrdJob` queued job
-- [ ] Update `signOff()` method to dispatch appropriate job based on conversation type
-- [ ] Create PRD template/format (can be simple markdown initially)
-- [ ] Update Document model with proper relationships and fields
-- [ ] Add basic PRD generation logic (can use fake content initially)
-- [ ] Test job execution and document creation
+
+#### 1. DocumentObserver Setup
+- [ ] Create `DocumentObserver` class (`php artisan make:observer DocumentObserver --model=Document`)
+- [ ] Register observer in `AppServiceProvider` or `EventServiceProvider`
+- [ ] Implement `created()` method to handle new Document events
+
+#### 2. Notification System
+- [ ] Make `User` model `Notifiable` (add `use Notifiable` trait)
+- [ ] Create `NewDocumentCreated` notification class (`php artisan make:notification NewDocumentCreated`)
+- [ ] Notification should accept `Document` model in constructor
+- [ ] Implement `toMail()` method with:
+  - Descriptive but concise message (e.g., "A new PRD has been generated for [New Application/Feature Request]")
+  - Link to conversation page where admin can view the conversation and documents
+  - Use `route()` helper to generate proper URL
+- [ ] Implement `via()` method to return `['mail']` (extensible for Slack/Teams later)
+- [ ] Consider adding `toSlack()` or `toMicrosoftTeams()` methods as placeholders for future
+
+#### 3. Observer Logic
+- [ ] In `DocumentObserver::created()`, query all admin users: `User::where('is_admin', true)->get()`
+- [ ] Loop through admin users and send notification: `$admin->notify(new NewDocumentCreated($document))`
+- [ ] Consider using `Notification::send()` for bulk notifications if needed
+
+#### 4. Testing
+- [ ] Update `GenerateNewApplicationPrdJobTest` to use `Notification::fake()`
+- [ ] Assert that notification is sent to admin users when Document is created
+- [ ] Assert that notification is NOT sent to non-admin users
+- [ ] Test notification contains correct conversation link
+- [ ] Test notification message includes correct context (New Application vs Feature Request)
+- [ ] Verify notification is sent for each admin user in the system
+
+#### 5. Additional Considerations
+- [ ] Add mail view for notification (resources/views/emails/new-document-created.blade.php) if using Mailable
+- [ ] Ensure notification works with queue system (implement `ShouldQueue` if desired)
+- [ ] Add config option to enable/disable admin notifications
+- [ ] Consider rate limiting or batching if many Documents are created simultaneously
+
+### Future Enhancements (Phase Two)
+- Add Slack integration for notifications
+- Add Microsoft Teams integration for notifications
+- Add in-app notification system (database notifications)
+- Allow admins to configure their notification preferences
+- Send notification back to the user when PRD is complete (add Reqqy message to conversation)
