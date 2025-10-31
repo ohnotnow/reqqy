@@ -13,7 +13,9 @@
         "laravel/framework": "^12.0",
         "laravel/socialite": "^5.23",
         "laravel/tinker": "^2.10.1",
-        "livewire/flux": "*",
+        "livewire/flux": "^2.6",
+        "livewire/flux-pro": "^2.6",
+        "prism-php/prism": "^0.97.0",
         "socialiteproviders/keycloak": "^5.3"
     },
     "require-dev": {
@@ -91,5 +93,11 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "repositories": {
+        "flux-pro": {
+            "type": "composer",
+            "url": "https://composer.fluxui.dev"
+        }
+    }
 }
