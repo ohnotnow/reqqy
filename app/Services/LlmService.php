@@ -18,10 +18,11 @@ class LlmService
      *
      * @param  Collection<int, \App\Models\Message>  $messages
      * @param  string|null  $systemPrompt  Custom system prompt, or null to use default chat prompt
+     * @param  bool  $useSmallModel  Whether to use the small/cheap model (default: false)
      */
-    public function generateResponse(Conversation $conversation, Collection $messages, ?string $systemPrompt = null): string
+    public function generateResponse(Conversation $conversation, Collection $messages, ?string $systemPrompt = null, bool $useSmallModel = false): string
     {
-        [$provider, $model] = $this->parseProviderAndModel();
+        [$provider, $model] = $this->parseProviderAndModel($useSmallModel);
 
         $systemPrompt = $systemPrompt ?? $this->renderChatPrompt($conversation);
         $prismMessages = $this->convertToPrismMessages($messages);
@@ -52,12 +53,14 @@ class LlmService
      *
      * @throws InvalidArgumentException
      */
-    protected function parseProviderAndModel(): array
+    protected function parseProviderAndModel(bool $useSmallModel = false): array
     {
-        $llmConfig = config('reqqy.llm');
+        $configKey = $useSmallModel ? 'reqqy.llm.small' : 'reqqy.llm.default';
+        $llmConfig = config($configKey);
 
         if (empty($llmConfig)) {
-            throw new InvalidArgumentException('LLM configuration is not set. Please set REQQY_LLM in your .env file.');
+            $envVar = $useSmallModel ? 'REQQY_LLM_SMALL' : 'REQQY_LLM';
+            throw new InvalidArgumentException("LLM configuration is not set. Please set {$envVar} in your .env file.");
         }
 
         if (! str_contains($llmConfig, '/')) {

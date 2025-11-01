@@ -13,7 +13,10 @@ use Prism\Prism\ValueObjects\Usage;
 uses()->group('livewire');
 
 beforeEach(function () {
-    config(['reqqy.llm' => 'anthropic/claude-3-5-sonnet-20241022']);
+    config([
+        'reqqy.llm.default' => 'anthropic/claude-3-5-sonnet-20241022',
+        'reqqy.llm.small' => 'anthropic/claude-3-haiku-20240307',
+    ]);
 });
 
 it('can render the conversation page', function () {

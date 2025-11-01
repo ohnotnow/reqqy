@@ -444,188 +444,166 @@ Remember: You have the laravel boost MCP tool which was written by the creators 
   - Well-tested authorization layer
 - 📝 Next: Implement Phase 3 - Application Auto-Creation (Proposed State)
 
-## Next Steps - Phase 3: Application Auto-Creation (Proposed State)
+### 2025-11-01 - Phase 3: Application Auto-Creation with Smart Name Extraction
+- ✅ **Implemented Automated Proposed Application Creation**
+  - Created `ConversationObserver` (`app/Observers/ConversationObserver.php`)
+  - Registered observer in `AppServiceProvider::boot()`
+  - Watches for conversation status changes to `Approved`
+  - Auto-creates `Proposed` application when new application conversation is approved
+  - Skips creation if conversation already has `application_id` (feature requests)
+  - Bidirectionally links conversation and application (`source_conversation_id` ↔ `application_id`)
+  - Uses `saveQuietly()` to prevent infinite observer loops
+- ✅ **Smart LLM-Based Name Extraction**
+  - Enhanced `LlmService` to support two model configurations:
+    - `reqqy.llm.default` - Powerful model (Claude 3.5 Sonnet) for conversations
+    - `reqqy.llm.small` - Cheap/fast model (Claude 3 Haiku) for quick tasks
+  - Added `useSmallModel` boolean parameter to `generateResponse()` method
+  - Created `extract-application-name.blade.php` prompt template
+  - Prompt instructs LLM to extract concise, professional application names (3-6 words)
+  - Provides examples of good/bad names for consistent results
+  - Uses small model to keep costs minimal while improving quality
+- ✅ **Robust Fallback Strategy** (multi-layered approach):
+  1. Try LLM extraction using conversation history
+  2. Fall back to truncated first user message (50 chars)
+  3. Fall back to generic "New Application Proposal"
+  - Wrapped in try-catch to handle LLM failures gracefully
+  - Trims and limits extracted name to 100 characters
+- ✅ **Admin Notification System**
+  - Created `NewProposedApplicationCreated` notification class
+  - Implements `ShouldQueue` for background processing
+  - Dynamic subject line based on application category
+  - Generic greeting: "Hello Reqqy Admin!" (clean, simple)
+  - Action button linking to conversation page
+  - Notifies all admin users when Proposed application is created
+  - Uses `User::where('is_admin', true)->get()` query pattern
+- ✅ **Comprehensive Testing** (9 new tests, all passing):
+  - Tests auto-creation when conversation approved
+  - Tests no creation if conversation already has application
+  - Tests no creation for other status changes (Rejected, Completed, etc.)
+  - Tests no creation if status unchanged
+  - Tests LLM-based name extraction from conversation
+  - Tests fallback name when no messages exist
+  - Tests admin notification to all admins (not regular users)
+  - Tests notification includes conversation link and application details
+  - All 105 tests passing with 281 assertions
+- ✅ **Config Structure Updates**
+  - Updated `config/reqqy.php` with nested LLM configuration:
+    ```php
+    'llm' => [
+        'default' => env('REQQY_LLM'),
+        'small' => env('REQQY_LLM_SMALL'),
+    ]
+    ```
+  - Updated all tests to use new nested config keys
+  - Fixed config references in `LlmServiceTest` and `ConversationPageTest`
+- ✅ All code formatted with Laravel Pint
+- 💡 **Design Benefits:**
+  - Two-step approval workflow: (1) approve conversation idea, (2) promote proposal to Internal
+  - Smart name extraction provides better UX than simple truncation
+  - Small model keeps costs minimal while dramatically improving quality
+  - Fallback strategy ensures system never breaks (graceful degradation)
+  - Clean separation: Observer handles workflow, LlmService handles AI calls
+  - Dependency injection enables easy testing with `Prism::fake()`
+- 💡 **Key Technical Decisions:**
+  - Used boolean parameter `useSmallModel` instead of creating separate methods
+  - Kept LlmService signature flexible with optional `systemPrompt` parameter
+  - Used `TextResponseFake::make()->withText()` pattern for test mocking
+  - Used `saveQuietly()` to avoid triggering observer recursively
+- 📝 Next: Phase 4 - Settings UI Refactor (separate tabs for three application categories)
+
+## Next Steps - Phase 4: Settings UI Refactor for Application Categories
 
 ### Overview
-When an admin approves a "New Application" conversation (changes `ConversationStatus` to `Approved`), the system should automatically create a new `Application` record with `category = Proposed`. This creates a two-step approval workflow: (1) approve the conversation/idea, (2) review the proposal in Settings and promote to Internal if greenlit.
+The current Settings page lists all applications in a single flat view. With the three-category system (Internal, External, Proposed), we need a better UX to:
+1. Visually separate the three categories (tabs or sections)
+2. Show category-appropriate fields (e.g., Proposed apps don't need status/repo yet)
+3. Provide promote/reject actions for Proposed applications
+4. Filter feature request dropdown to only show Internal applications
 
 ### Implementation Plan
 
-#### 1. Field Extraction Strategy
-**Decision needed:** How do we populate the new Proposed Application's fields?
+#### 1. UI Design Options
+**Option A: Tab-Based Layout (Recommended)**
+- Three tabs: "Internal Apps", "External Apps", "Proposed Apps"
+- Each tab shows only applications from that category
+- Add Application button changes behavior based on active tab
+- Flux tabs component provides clean, familiar UX
 
-**Minimal Approach (Recommended for MVP):**
-- Extract `name` from first user message or PRD document title
-- Set `category` = 'proposed'
-- Set `source_conversation_id` = conversation ID
-- Leave `short_description`, `url`, `repo`, `status` as NULL
-- Admin fills in details manually before promoting to Internal
+**Option B: Accordion/Collapsible Sections**
+- Three collapsible sections on one page
+- More scrolling, but see all data at once
+- Could get cluttered with many applications
 
-**Smart Extraction Approach (Future Enhancement):**
-- Use LLM to extract `name` and `short_description` from PRD document
-- More automated, but adds complexity and cost
+**Option C: Separate Pages**
+- Three different routes/pages
+- Most separation, but adds navigation complexity
+- Probably overkill for MVP
 
-**Fields to populate:**
-```php
-[
-    'category' => ApplicationCategory::Proposed,
-    'source_conversation_id' => $conversation->id,
-    'name' => '???', // Extract from conversation/PRD
-    'short_description' => null, // Admin fills in later
-    'url' => null, // Doesn't exist yet
-    'repo' => null, // Doesn't exist yet
-    'is_automated' => false,
-    'status' => null, // Not relevant until promoted
-    'overview' => null, // Could copy from PRD later
-]
-```
+#### 2. Settings Page Refactor Tasks
+- [ ] Add Flux tabs component to Settings page
+- [ ] Filter applications by category for each tab
+- [ ] Update "Add Application" button to pre-set category based on active tab
+- [ ] Show/hide fields based on category:
+  - Internal: all fields (name, short_description, url, repo, status, is_automated)
+  - External: name, short_description, url only (no repo, status, is_automated)
+  - Proposed: name, short_description only (fill in rest when promoting)
+- [ ] Add "Promote to Internal" button for Proposed applications
+- [ ] Add "Reject" button for Proposed applications (soft delete or status flag?)
+- [ ] Update validation rules to match category requirements
 
-#### 2. ConversationObserver Implementation
-- [ ] Create `ConversationObserver` class
-- [ ] Register observer in `AppServiceProvider::boot()`
-- [ ] Implement `updated()` method to detect status changes
-- [ ] Check if conversation was approved (`status` changed to `Approved`)
-- [ ] Check if conversation is for new application (`application_id` is NULL)
-- [ ] If both true, create new Proposed Application
-- [ ] Update conversation's `application_id` to link to new Proposed app
+#### 3. Promote/Reject Functionality
+- [ ] Create `promoteToInternal()` method on SettingsPage component
+- [ ] Transition: Proposed → Internal (update category, allow filling in status/repo/url)
+- [ ] Show success message when promoted
+- [ ] Redirect to Internal tab after promotion
+- [ ] Create `rejectProposal()` method (decide: soft delete or add rejected flag?)
+- [ ] Confirmation dialog before rejection
 
-**Observer Logic:**
-```php
-public function updated(Conversation $conversation): void
-{
-    // Only process if status changed to Approved
-    if (!$conversation->wasChanged('status') || $conversation->status !== ConversationStatus::Approved) {
-        return;
-    }
-
-    // Only process new application requests (no existing app linked)
-    if ($conversation->application_id !== null) {
-        return;
-    }
-
-    // Create Proposed Application
-    $application = Application::create([
-        'category' => ApplicationCategory::Proposed,
-        'source_conversation_id' => $conversation->id,
-        'name' => $this->extractApplicationName($conversation),
-    ]);
-
-    // Link conversation to new application
-    $conversation->application_id = $application->id;
-    $conversation->saveQuietly(); // Avoid triggering observer again
-}
-```
-
-#### 3. Name Extraction Strategy
-- [ ] Decide on extraction approach (minimal vs smart)
-- [ ] Implement extraction logic (helper method or separate service)
-- [ ] Handle edge cases (empty conversations, no PRD yet)
-
-**Minimal approach example:**
-```php
-private function extractApplicationName(Conversation $conversation): string
-{
-    // Option 1: Use first user message
-    $firstMessage = $conversation->messages()
-        ->whereNotNull('user_id')
-        ->orderBy('created_at')
-        ->first();
-
-    if ($firstMessage) {
-        // Take first 50 chars as a naive name extraction
-        return Str::limit($firstMessage->content, 50, '');
-    }
-
-    // Fallback: Generic name
-    return 'New Application Proposal';
-}
-```
-
-#### 4. Admin Notification
-- [ ] Create `NewProposedApplicationCreated` notification class
-- [ ] Notify all admin users when Proposed application is created
-- [ ] Email should include:
-  - Link to conversation that spawned it
-  - Link to Settings page to review proposal
-  - Option to promote to Internal or reject
-- [ ] Consider reusing existing notification pattern from DocumentObserver
+#### 4. HomePage Dropdown Filter
+- [ ] Update HomePage component to filter applications where `canHaveFeaturesRequested()` returns true
+- [ ] This should only show Internal applications (External/Proposed can't have features)
+- [ ] Add test coverage for filtered dropdown
 
 #### 5. Testing Strategy
-- [ ] Test ConversationObserver triggers on status change to Approved
-- [ ] Test Proposed application is NOT created if conversation already has `application_id`
-- [ ] Test Proposed application is NOT created if status changes to other values (Rejected, Completed, etc.)
-- [ ] Test bidirectional linking (Conversation ↔ Application)
-- [ ] Test name extraction from various conversation scenarios
-- [ ] Test admin notification is sent to all admins
-- [ ] Test observer doesn't trigger infinite loops (use `saveQuietly()`)
+- [ ] Test tab switching and filtering
+- [ ] Test Add Application pre-fills correct category
+- [ ] Test Promote to Internal workflow
+- [ ] Test Reject workflow
+- [ ] Test validation rules per category
+- [ ] Test HomePage dropdown only shows Internal apps
+- [ ] Test UI shows/hides fields based on category
 
-#### 6. Additional Considerations
-- [ ] Decide when to trigger: on `Approved` or `Completed` status?
-- [ ] Handle conversations that get approved before PRD is generated
-- [ ] Consider queueing the application creation (background job vs immediate)
-- [ ] Error handling: what if name extraction fails? duplicate names?
+#### 6. Additional Enhancements
+- [ ] Badge/icon to indicate category on each application card
+- [ ] Sort Proposed apps by creation date (newest first) to prioritize review
+- [ ] Show source conversation link on Proposed applications
+- [ ] Count badges on tabs (e.g., "Proposed (3)")
+- [ ] Empty state per tab with category-specific messaging
 
 ### Success Criteria
-- ✅ Conversation approved → Proposed application auto-created
-- ✅ Conversation and application bidirectionally linked
-- ✅ Admin users notified about new proposal
-- ✅ Application appears in Settings (future: dedicated "Proposed" section)
-- ✅ All tests passing with new observer logic
-- ✅ No infinite observer loops or N+1 queries
+- ✅ Three-category system is visually clear and intuitive
+- ✅ Admins can easily review and promote Proposed applications
+- ✅ Form validation matches category requirements
+- ✅ Feature request dropdown only shows Internal applications
+- ✅ All tests passing with refactored UI
+- ✅ No regressions in existing functionality
 
-### Future Enhancements (Phase 4+)
-- Settings UI refactor to show three application categories in separate tabs/sections
-- Promote/Reject buttons for Proposed applications in Settings
-- LLM context integration: pass all applications (3 categories) to chat prompts
-- Filter "New Feature" dropdown to only show Internal applications
-- Smart name extraction using LLM
-- Bulk approve/reject for multiple proposals
+## Outstanding MVP Tasks
 
-## Next Steps - Admin Notifications
+### High Priority
+- [ ] Hook up PRD job dispatch in ConversationPage `signOff()` method
+- [ ] Create `GenerateFeatureRequestPrdJob` (similar to NewApplication version)
+- [ ] Phase 4: Settings UI refactor for three-category system (see above)
 
-### Approach
-When a new `Document` is created, we need to notify all admin users in the system. Using an Observer pattern will keep this logic clean and maintainable as the app grows.
+### Medium Priority
+- [ ] LLM context integration: pass all applications (3 categories) to chat prompts for better awareness
+- [ ] Filter "New Feature" dropdown to only show Internal applications
+- [ ] Additional testing for edge cases and error handling
 
-### Implementation Tasks
-
-#### 1. DocumentObserver Setup
-- [ ] Create `DocumentObserver` class (`php artisan make:observer DocumentObserver --model=Document`)
-- [ ] Register observer in `AppServiceProvider` or `EventServiceProvider`
-- [ ] Implement `created()` method to handle new Document events
-
-#### 2. Notification System
-- [ ] Make `User` model `Notifiable` (add `use Notifiable` trait)
-- [ ] Create `NewDocumentCreated` notification class (`php artisan make:notification NewDocumentCreated`)
-- [ ] Notification should accept `Document` model in constructor
-- [ ] Implement `toMail()` method with:
-  - Descriptive but concise message (e.g., "A new PRD has been generated for [New Application/Feature Request]")
-  - Link to conversation page where admin can view the conversation and documents
-  - Use `route()` helper to generate proper URL
-- [ ] Implement `via()` method to return `['mail']` (extensible for Slack/Teams later)
-- [ ] Consider adding `toSlack()` or `toMicrosoftTeams()` methods as placeholders for future
-
-#### 3. Observer Logic
-- [ ] In `DocumentObserver::created()`, query all admin users: `User::where('is_admin', true)->get()`
-- [ ] Loop through admin users and send notification: `$admin->notify(new NewDocumentCreated($document))`
-- [ ] Consider using `Notification::send()` for bulk notifications if needed
-
-#### 4. Testing
-- [ ] Update `GenerateNewApplicationPrdJobTest` to use `Notification::fake()`
-- [ ] Assert that notification is sent to admin users when Document is created
-- [ ] Assert that notification is NOT sent to non-admin users
-- [ ] Test notification contains correct conversation link
-- [ ] Test notification message includes correct context (New Application vs Feature Request)
-- [ ] Verify notification is sent for each admin user in the system
-
-#### 5. Additional Considerations
-- [ ] Add mail view for notification (resources/views/emails/new-document-created.blade.php) if using Mailable
-- [ ] Ensure notification works with queue system (implement `ShouldQueue` if desired)
-- [ ] Add config option to enable/disable admin notifications
-- [ ] Consider rate limiting or batching if many Documents are created simultaneously
-
-### Future Enhancements (Phase Two)
-- Add Slack integration for notifications
-- Add Microsoft Teams integration for notifications
-- Add in-app notification system (database notifications)
-- Allow admins to configure their notification preferences
-- Send notification back to the user when PRD is complete (add Reqqy message to conversation)
+### Future Enhancements (Phase Two and Beyond)
+- Phase Two research agent integration (codebase analysis, web research)
+- Slack/Teams integration for notifications
+- In-app notification system (database notifications)
+- Bulk approve/reject for multiple Proposed applications
+- Document versioning and revision tracking
+- User notification when PRD is complete (Reqqy message in conversation)

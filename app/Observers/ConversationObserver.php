@@ -8,10 +8,15 @@ use App\Models\Application;
 use App\Models\Conversation;
 use App\Models\User;
 use App\Notifications\NewProposedApplicationCreated;
+use App\Services\LlmService;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
 
 class ConversationObserver
 {
+    public function __construct(
+        protected LlmService $llmService
+    ) {}
     /**
      * Handle the Conversation "updated" event.
      */
@@ -52,16 +57,36 @@ class ConversationObserver
 
     private function extractApplicationName(Conversation $conversation): string
     {
-        $firstMessage = $conversation->messages()
-            ->whereNotNull('user_id')
+        $messages = $conversation->messages()
             ->orderBy('created_at')
-            ->first();
+            ->get();
 
-        if ($firstMessage) {
-            return Str::limit($firstMessage->content, 50, '');
+        if ($messages->isEmpty()) {
+            return 'New Application Proposal';
         }
 
-        return 'New Application Proposal';
+        try {
+            $prompt = View::make('prompts.extract-application-name', [
+                'messages' => $messages,
+            ])->render();
+
+            $name = $this->llmService->generateResponse(
+                conversation: $conversation,
+                messages: collect(),
+                systemPrompt: $prompt,
+                useSmallModel: true
+            );
+
+            return Str::limit(trim($name), 100, '');
+        } catch (\Exception $e) {
+            $firstMessage = $messages->firstWhere('user_id', '!=', null);
+
+            if ($firstMessage) {
+                return Str::limit($firstMessage->content, 50, '');
+            }
+
+            return 'New Application Proposal';
+        }
     }
 
     private function notifyAdmins(Application $application): void

@@ -8,9 +8,14 @@ use App\Models\Message;
 use App\Models\User;
 use App\Notifications\NewProposedApplicationCreated;
 use Illuminate\Support\Facades\Notification;
+use Prism\Prism\Facades\Prism;
+use Prism\Prism\Testing\TextResponseFake;
 
 test('it creates proposed application when conversation is approved', function () {
     Notification::fake();
+    Prism::fake([
+        TextResponseFake::make()->withText('Vintage Guitar Marketplace'),
+    ]);
 
     $conversation = Conversation::factory()->create([
         'status' => ConversationStatus::Pending,
@@ -29,7 +34,7 @@ test('it creates proposed application when conversation is approved', function (
     $proposedApp = Application::where('category', ApplicationCategory::Proposed)->first();
     expect($proposedApp)->not->toBeNull();
     expect($proposedApp->source_conversation_id)->toBe($conversation->id);
-    expect($proposedApp->name)->toContain('marketplace');
+    expect($proposedApp->name)->toBe('Vintage Guitar Marketplace');
 
     $conversation = $conversation->fresh();
     expect($conversation->application_id)->toBe($proposedApp->id);
@@ -87,8 +92,11 @@ test('it does not create proposed application if status does not change', functi
     expect($proposedApps)->toHaveCount(0);
 });
 
-test('it extracts application name from first user message', function () {
+test('it extracts application name using LLM', function () {
     Notification::fake();
+    Prism::fake([
+        TextResponseFake::make()->withText('Recipe Sharing Platform'),
+    ]);
 
     $conversation = Conversation::factory()->create([
         'status' => ConversationStatus::Pending,
@@ -105,7 +113,7 @@ test('it extracts application name from first user message', function () {
     $conversation->save();
 
     $proposedApp = Application::where('category', ApplicationCategory::Proposed)->first();
-    expect($proposedApp->name)->toBe('I want to build a recipe sharing platform for home');
+    expect($proposedApp->name)->toBe('Recipe Sharing Platform');
 });
 
 test('it uses fallback name when no user messages exist', function () {
@@ -125,6 +133,9 @@ test('it uses fallback name when no user messages exist', function () {
 
 test('it notifies all admin users when proposed application is created', function () {
     Notification::fake();
+    Prism::fake([
+        TextResponseFake::make()->withText('Task Management App'),
+    ]);
 
     $admin1 = User::factory()->create(['is_admin' => true]);
     $admin2 = User::factory()->create(['is_admin' => true]);
@@ -150,6 +161,9 @@ test('it notifies all admin users when proposed application is created', functio
 
 test('it includes conversation link in notification', function () {
     Notification::fake();
+    Prism::fake([
+        TextResponseFake::make()->withText('Project Tracker'),
+    ]);
 
     User::factory()->create(['is_admin' => true]);
 

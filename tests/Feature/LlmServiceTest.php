@@ -10,7 +10,10 @@ use Prism\Prism\Testing\TextResponseFake;
 use Prism\Prism\ValueObjects\Usage;
 
 beforeEach(function () {
-    config(['reqqy.llm' => 'anthropic/claude-3-5-sonnet-20241022']);
+    config([
+        'reqqy.llm.default' => 'anthropic/claude-3-5-sonnet-20241022',
+        'reqqy.llm.small' => 'anthropic/claude-3-haiku-20240307',
+    ]);
 });
 
 it('can generate a response from conversation messages', function () {
@@ -142,7 +145,7 @@ it('preserves message order in conversation', function () {
 });
 
 it('works with anthropic provider', function () {
-    config(['reqqy.llm' => 'anthropic/claude-3-5-sonnet-20241022']);
+    config(['reqqy.llm.default' => 'anthropic/claude-3-5-sonnet-20241022']);
 
     $user = User::factory()->create();
     $conversation = Conversation::factory()->create(['user_id' => $user->id]);
@@ -161,7 +164,7 @@ it('works with anthropic provider', function () {
 });
 
 it('works with openai provider', function () {
-    config(['reqqy.llm' => 'openai/gpt-4']);
+    config(['reqqy.llm.default' => 'openai/gpt-4']);
 
     $user = User::factory()->create();
     $conversation = Conversation::factory()->create(['user_id' => $user->id]);
@@ -180,7 +183,7 @@ it('works with openai provider', function () {
 });
 
 it('works with openrouter provider', function () {
-    config(['reqqy.llm' => 'openrouter/anthropic/claude-3.5-sonnet']);
+    config(['reqqy.llm.default' => 'openrouter/anthropic/claude-3.5-sonnet']);
 
     $user = User::factory()->create();
     $conversation = Conversation::factory()->create(['user_id' => $user->id]);
@@ -199,7 +202,7 @@ it('works with openrouter provider', function () {
 });
 
 it('throws exception when llm config is empty', function () {
-    config(['reqqy.llm' => '']);
+    config(['reqqy.llm.default' => '']);
 
     $user = User::factory()->create();
     $conversation = Conversation::factory()->create(['user_id' => $user->id]);
@@ -211,7 +214,7 @@ it('throws exception when llm config is empty', function () {
 });
 
 it('throws exception when llm config is null', function () {
-    config(['reqqy.llm' => null]);
+    config(['reqqy.llm.default' => null]);
 
     $user = User::factory()->create();
     $conversation = Conversation::factory()->create(['user_id' => $user->id]);
@@ -223,7 +226,7 @@ it('throws exception when llm config is null', function () {
 });
 
 it('throws exception when llm config is missing slash separator', function () {
-    config(['reqqy.llm' => 'anthropic-claude-3-5-sonnet']);
+    config(['reqqy.llm.default' => 'anthropic-claude-3-5-sonnet']);
 
     $user = User::factory()->create();
     $conversation = Conversation::factory()->create(['user_id' => $user->id]);
@@ -235,7 +238,7 @@ it('throws exception when llm config is missing slash separator', function () {
 });
 
 it('throws exception for unsupported provider', function () {
-    config(['reqqy.llm' => 'gemini/gemini-pro']);
+    config(['reqqy.llm.default' => 'gemini/gemini-pro']);
 
     $user = User::factory()->create();
     $conversation = Conversation::factory()->create(['user_id' => $user->id]);
@@ -247,7 +250,7 @@ it('throws exception for unsupported provider', function () {
 });
 
 it('handles case-insensitive provider names', function () {
-    config(['reqqy.llm' => 'ANTHROPIC/claude-3-5-sonnet-20241022']);
+    config(['reqqy.llm.default' => 'ANTHROPIC/claude-3-5-sonnet-20241022']);
 
     $user = User::factory()->create();
     $conversation = Conversation::factory()->create(['user_id' => $user->id]);
