@@ -1,10 +1,7 @@
 <div class="h-screen flex flex-col" wire:poll.50s>
     <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
         <div class="max-w-4xl mx-auto flex items-center justify-between">
-            <div class="space-y-2">
-                <p class="text-xs text-gray-500 dark:text-gray-400">
-                    Debug: {{ $debugSummary }}
-                </p>
+            <div>
                 <flux:heading size="lg">
                     @if($conversation->application)
                         {{ $conversation->application->name }} - New Feature
