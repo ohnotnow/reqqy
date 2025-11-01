@@ -51,8 +51,19 @@ class ConversationPage extends Component
         ]);
 
         $this->messageContent = '';
+    }
 
-        $this->generateLlmResponse();
+    public function checkForUnansweredMessages(): void
+    {
+        if ($this->conversation->isSignedOff()) {
+            return;
+        }
+
+        $lastMessage = $this->conversation->messages()->latest()->first();
+
+        if ($lastMessage && $lastMessage->isFromUser()) {
+            $this->generateLlmResponse();
+        }
     }
 
     public function signOff(): void
