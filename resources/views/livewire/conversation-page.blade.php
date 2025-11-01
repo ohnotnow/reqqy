@@ -33,12 +33,15 @@
                             {{ $message['content'] }}
                         </flux:callout>
                     @else
-                        <flux:callout
-                            color="purple"
-                            icon="sparkles"
-                            heading="{{ $message['is_pending'] ? 'Reqqy (thinking...)' : 'Reqqy' }}"
-                        >
-                            {{ $message['content'] }}
+                        <flux:callout color="purple" icon="sparkles" heading="Reqqy">
+                            @if($message['is_pending'])
+                                <div class="flex items-center gap-2">
+                                    <flux:icon.loading class="size-4" />
+                                    <span>{{ $message['content'] }}</span>
+                                </div>
+                            @else
+                                {{ $message['content'] }}
+                            @endif
                         </flux:callout>
                     @endif
                 </div>
