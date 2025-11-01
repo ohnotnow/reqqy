@@ -18,10 +18,19 @@ class ApplicationFactory extends Factory
     {
         return [
             'name' => $this->faker->word,
-            'description' => $this->faker->sentence,
+            'short_description' => $this->faker->sentence,
+            'overview' => $this->faker->sentence,
+            'is_automated' => false,
             'status' => $this->faker->randomElement(['plan', 'approved', 'rejected']),
             'url' => $this->faker->url,
             'repo' => $this->faker->url,
         ];
+    }
+
+    public function automated()
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_automated' => true,
+        ]);
     }
 }

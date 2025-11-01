@@ -14,10 +14,12 @@ return new class extends Migration
         Schema::create('applications', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->text('description')->nullable();
+            $table->text('short_description')->nullable();
+            $table->text('overview')->nullable();
+            $table->boolean('is_automated')->default(false);
             $table->string('status');
-            $table->string('url');
-            $table->string('repo');
+            $table->string('url')->nullable();
+            $table->string('repo')->nullable();
             $table->timestamps();
         });
     }
