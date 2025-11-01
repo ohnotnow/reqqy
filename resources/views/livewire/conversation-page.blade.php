@@ -23,7 +23,7 @@
 
     <div class="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900">
         <div class="max-w-4xl mx-auto space-y-4">
-            @forelse($conversation->messages as $message)
+            @forelse($conversationMessages as $message)
                 <div
                     wire:key="message-{{ $message->id }}"
                     wire:transition.opacity.duration.200ms

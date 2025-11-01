@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Services\LlmService;
+use Illuminate\Support\Collection;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -23,10 +24,13 @@ class ConversationPage extends Component
 
     public bool $isAwaitingResponse = false;
 
+    /** @var Collection<int, Message> */
+    public Collection $conversationMessages;
+
     public function mount(): void
     {
         if ($this->conversation_id) {
-            $this->conversation = auth()->user()->conversations()->with('messages')->findOrFail($this->conversation_id);
+            $this->conversation = auth()->user()->conversations()->findOrFail($this->conversation_id);
         } else {
             $this->conversation = Conversation::create([
                 'user_id' => auth()->id(),
@@ -35,6 +39,8 @@ class ConversationPage extends Component
 
             $this->redirect(route('conversation', ['conversation_id' => $this->conversation->id]), navigate: true);
         }
+
+        $this->conversationMessages = $this->loadMessages();
     }
 
     public function sendMessage(): void
@@ -53,7 +59,7 @@ class ConversationPage extends Component
             'content' => $validated['messageContent'],
         ]);
 
-        $this->conversation->load('messages');
+        $this->conversationMessages = $this->loadMessages();
 
         $this->messageContent = '';
 
@@ -82,7 +88,7 @@ class ConversationPage extends Component
 
         $this->generateLlmResponse();
 
-        $this->conversation->load('messages');
+        $this->conversationMessages = $this->loadMessages();
     }
 
     public function checkForUnansweredMessages(): void
@@ -91,7 +97,10 @@ class ConversationPage extends Component
             return;
         }
 
-        $lastMessage = $this->conversation->messages()->latest()->first();
+        $lastMessage = Message::query()
+            ->where('conversation_id', $this->conversation->id)
+            ->latest()
+            ->first();
 
         if ($lastMessage && $lastMessage->isFromUser()) {
             $this->isAwaitingResponse = true;
@@ -118,7 +127,9 @@ class ConversationPage extends Component
             'content' => "Thank you for providing your requirements! I'll now generate the documentation for the development team. An admin will review your request and be in touch soon.",
         ]);
 
-        $this->conversation->load('messages');
+        $this->conversationMessages = $this->loadMessages();
+
+        $this->conversation->refresh();
 
         $this->isAwaitingResponse = false;
     }
@@ -142,9 +153,17 @@ class ConversationPage extends Component
             'content' => $responseText,
         ]);
 
-        $this->conversation->load('messages');
+        $this->conversationMessages = $this->loadMessages();
 
         $this->isAwaitingResponse = false;
+    }
+
+    protected function loadMessages(): Collection
+    {
+        return Message::query()
+            ->where('conversation_id', $this->conversation->id)
+            ->orderBy('created_at')
+            ->get();
     }
 
     public function render()
