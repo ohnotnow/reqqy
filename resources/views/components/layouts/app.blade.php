@@ -24,10 +24,9 @@
                 </flux:sidebar.header>
                 <flux:sidebar.nav>
                     <flux:sidebar.item icon="home" href="/" wire:navigate>Home</flux:sidebar.item>
-                    <flux:sidebar.item icon="plus-circle" href="" wire:navigate>New</flux:sidebar.item>
-                    <flux:separator class="my-2" />
-                    <flux:sidebar.item badge="3" icon="list-bullet" href="" wire:navigate>List things</flux:sidebar.item>
-                    <flux:sidebar.item icon="chart-bar" href="" wire:navigate>Report</flux:sidebar.item>
+                    @if(auth()->user()->is_admin)
+                        <flux:sidebar.item icon="chat-bubble-left-right" href="{{ route('admin.conversations.index') }}" wire:navigate>Conversations</flux:sidebar.item>
+                    @endif
                 </flux:sidebar.nav>
                 <flux:sidebar.spacer />
                 <flux:sidebar.nav>

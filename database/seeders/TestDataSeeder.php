@@ -20,6 +20,7 @@ class TestDataSeeder extends Seeder
         User::factory()->create([
             'username' => 'admin2x',
             'password' => bcrypt('secret'),
+            'is_admin' => true,
         ]);
 
         Application::factory(10)->create();
