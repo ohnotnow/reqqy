@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\ConversationStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,11 +17,16 @@ class Conversation extends Model
         'user_id',
         'application_id',
         'signed_off_at',
+        'status',
     ];
 
-    protected $casts = [
-        'signed_off_at' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'signed_off_at' => 'datetime',
+            'status' => ConversationStatus::class,
+        ];
+    }
 
     public function user(): BelongsTo
     {

@@ -8,4 +8,9 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/', App\Livewire\HomePage::class)->name('home');
     Route::get('/conversation', App\Livewire\ConversationPage::class)->name('conversation');
     Route::get('/settings', App\Livewire\SettingsPage::class)->name('settings');
+
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('/conversations', App\Livewire\ConversationsAdminPage::class)->name('conversations.index');
+        Route::get('/conversations/{conversation_id}', App\Livewire\ConversationDetailPage::class)->name('conversations.show');
+    });
 });
