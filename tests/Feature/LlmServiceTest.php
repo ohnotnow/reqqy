@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Application;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
@@ -302,23 +303,38 @@ it('accepts custom system prompt', function () {
 
 it('renders chat prompt for new application request', function () {
     $user = User::factory()->create();
-    $conversation = Conversation::factory()->create(['user_id' => $user->id, 'application_id' => null]);
+    $conversation = Conversation::factory()->create([
+        'user_id' => $user->id,
+        'application_id' => null,
+    ]);
+
+    $fakeResponse = TextResponseFake::make()
+        ->withText('Prompt check response');
+
+    $fake = Prism::fake([$fakeResponse]);
 
     $service = new LlmService;
-    $reflection = new ReflectionClass($service);
-    $method = $reflection->getMethod('renderChatPrompt');
-    $method->setAccessible(true);
+    $service->generateResponse($conversation, collect());
 
-    $prompt = $method->invoke($service, $conversation);
+    $fake->assertRequest(function (array $requests) {
+        expect($requests)->toHaveCount(1);
 
-    expect($prompt)->toContain('Context: New Application Request');
-    expect($prompt)->toContain('completely new application');
-    expect($prompt)->not->toContain('Feature Request for Existing Application');
+        /** @var \Prism\Prism\Text\Request $request */
+        $request = $requests[0];
+        $systemPrompts = $request->systemPrompts();
+
+        expect($systemPrompts)->toHaveCount(1);
+
+        $prompt = $systemPrompts[0]->content;
+
+        expect($prompt)->toContain('**Context:** This is a new application idea.');
+        expect($prompt)->not->toContain('feature request');
+    });
 });
 
 it('renders chat prompt for feature request with application context', function () {
     $user = User::factory()->create();
-    $application = \App\Models\Application::factory()->create([
+    $application = Application::factory()->create([
         'name' => 'My CRM App',
         'short_description' => 'A customer relationship management system',
         'overview' => 'This is a Laravel-based CRM with contact management and sales pipeline features.',
@@ -329,23 +345,34 @@ it('renders chat prompt for feature request with application context', function 
         'application_id' => $application->id,
     ]);
 
+    $fakeResponse = TextResponseFake::make()
+        ->withText('Prompt check response');
+
+    $fake = Prism::fake([$fakeResponse]);
+
     $service = new LlmService;
-    $reflection = new ReflectionClass($service);
-    $method = $reflection->getMethod('renderChatPrompt');
-    $method->setAccessible(true);
+    $service->generateResponse($conversation->fresh('application'), collect());
 
-    $prompt = $method->invoke($service, $conversation);
+    $fake->assertRequest(function (array $requests) {
+        expect($requests)->toHaveCount(1);
 
-    expect($prompt)->toContain('Context: Feature Request for Existing Application');
-    expect($prompt)->toContain('My CRM App');
-    expect($prompt)->toContain('A customer relationship management system');
-    expect($prompt)->toContain('This is a Laravel-based CRM with contact management and sales pipeline features.');
-    expect($prompt)->not->toContain('New Application Request');
+        /** @var \Prism\Prism\Text\Request $request */
+        $request = $requests[0];
+        $systemPrompts = $request->systemPrompts();
+
+        expect($systemPrompts)->toHaveCount(1);
+
+        $prompt = $systemPrompts[0]->content;
+
+        expect($prompt)->toContain('**Context:** This is a feature request for "My CRM App".');
+        expect($prompt)->toContain('A customer relationship management system');
+        expect($prompt)->not->toContain('This is a new application idea.');
+    });
 });
 
 it('renders chat prompt for feature request without optional application fields', function () {
     $user = User::factory()->create();
-    $application = \App\Models\Application::factory()->create([
+    $application = Application::factory()->create([
         'name' => 'Basic App',
         'short_description' => null,
         'overview' => null,
@@ -356,15 +383,27 @@ it('renders chat prompt for feature request without optional application fields'
         'application_id' => $application->id,
     ]);
 
+    $fakeResponse = TextResponseFake::make()
+        ->withText('Prompt check response');
+
+    $fake = Prism::fake([$fakeResponse]);
+
     $service = new LlmService;
-    $reflection = new ReflectionClass($service);
-    $method = $reflection->getMethod('renderChatPrompt');
-    $method->setAccessible(true);
+    $service->generateResponse($conversation->fresh('application'), collect());
 
-    $prompt = $method->invoke($service, $conversation);
+    $fake->assertRequest(function (array $requests) {
+        expect($requests)->toHaveCount(1);
 
-    expect($prompt)->toContain('Context: Feature Request for Existing Application');
-    expect($prompt)->toContain('Basic App');
-    expect($prompt)->not->toContain('Application Description:');
-    expect($prompt)->not->toContain('Application Overview:');
+        /** @var \Prism\Prism\Text\Request $request */
+        $request = $requests[0];
+        $systemPrompts = $request->systemPrompts();
+
+        expect($systemPrompts)->toHaveCount(1);
+
+        $prompt = $systemPrompts[0]->content;
+
+        expect($prompt)->toContain('**Context:** This is a feature request for "Basic App".');
+        expect($prompt)->not->toContain('This is a new application idea.');
+        expect($prompt)->not->toContain('A customer relationship management system');
+    });
 });
