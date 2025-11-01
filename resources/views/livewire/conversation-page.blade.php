@@ -24,7 +24,11 @@
     <div class="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900">
         <div class="max-w-4xl mx-auto space-y-4">
             @forelse($conversation->messages as $message)
-                <div wire:key="message-{{ $message->id }}" class="{{ $message->isFromUser() ? 'max-w-2xl ml-auto' : 'max-w-2xl' }}">
+                <div
+                    wire:key="message-{{ $message->id }}"
+                    wire:transition.opacity.duration.200ms
+                    class="{{ $message->isFromUser() ? 'max-w-2xl ml-auto' : 'max-w-2xl' }}"
+                >
                     @if($message->isFromUser())
                         <flux:callout color="blue" icon="user-circle" heading="You">
                             {{ $message->content }}
@@ -42,6 +46,16 @@
                     </flux:text>
                 </div>
             @endforelse
+
+            <div
+                wire:loading
+                wire:target="handleUserMessageCreated"
+                class="max-w-2xl"
+            >
+                <flux:callout color="purple" icon="sparkles" heading="Reqqy">
+                    Thinking through your request...
+                </flux:callout>
+            </div>
 
             @if($conversation->isSignedOff())
                 <div class="max-w-2xl">

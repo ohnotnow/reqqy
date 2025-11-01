@@ -6,9 +6,6 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
 use Livewire\Livewire;
-use Prism\Prism\Facades\Prism;
-use Prism\Prism\Testing\TextResponseFake;
-use Prism\Prism\ValueObjects\Usage;
 
 uses()->group('livewire');
 
@@ -84,17 +81,21 @@ it('can send a message and receive llm response', function () {
 
     expect(Message::count())->toBe(0);
 
-    Livewire::actingAs($user)
+    $component = Livewire::actingAs($user)
         ->test(ConversationPage::class, ['conversation_id' => $conversation->id])
         ->set('messageContent', 'Hello, how are you?')
         ->call('sendMessage')
         ->assertSet('messageContent', '');
 
-    expect(Message::count())->toBe(2);
+    expect(Message::count())->toBe(1);
 
     $userMessage = Message::where('user_id', $user->id)->first();
     expect($userMessage->content)->toBe('Hello, how are you?');
     expect($userMessage->conversation_id)->toBe($conversation->id);
+
+    $component->call('handleUserMessageCreated', $userMessage->id);
+
+    expect(Message::count())->toBe(2);
 
     $llmMessage = Message::whereNull('user_id')->first();
     expect($llmMessage->content)->toBe('Claude is the best');
@@ -220,10 +221,16 @@ it('passes conversation history to llm when generating response', function () {
         'created_at' => now()->subMinutes(1),
     ]);
 
-    Livewire::actingAs($user)
+    $component = Livewire::actingAs($user)
         ->test(ConversationPage::class, ['conversation_id' => $conversation->id])
         ->set('messageContent', 'Second user message')
         ->call('sendMessage');
+
+    expect(Message::count())->toBe(3);
+
+    $userMessage = Message::where('user_id', $user->id)->latest()->first();
+
+    $component->call('handleUserMessageCreated', $userMessage->id);
 
     expect(Message::count())->toBe(4);
 

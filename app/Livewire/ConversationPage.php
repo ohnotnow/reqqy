@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Services\LlmService;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
@@ -44,13 +45,38 @@ class ConversationPage extends Component
             'messageContent' => ['required', 'string', 'max:10000'],
         ]);
 
-        Message::create([
+        $message = Message::create([
             'conversation_id' => $this->conversation->id,
             'user_id' => auth()->id(),
             'content' => $validated['messageContent'],
         ]);
 
+        $this->conversation->load('messages');
+
         $this->messageContent = '';
+
+        $this->dispatch(
+            'user-message-created',
+            messageId: $message->id
+        );
+    }
+
+    #[On('user-message-created')]
+    public function handleUserMessageCreated(int $messageId): void
+    {
+        if ($this->conversation->isSignedOff()) {
+            return;
+        }
+
+        $message = Message::find($messageId);
+
+        if (! $message || $message->conversation_id !== $this->conversation->id || ! $message->isFromUser()) {
+            return;
+        }
+
+        $this->generateLlmResponse();
+
+        $this->conversation->load('messages');
     }
 
     public function checkForUnansweredMessages(): void
@@ -91,6 +117,7 @@ class ConversationPage extends Component
     {
         // Fake response for testing - remove this later!
         $responseText = 'Claude is the best';
+        sleep(5);
 
         // $llmService = app(LlmService::class);
         // $messages = $this->conversation->messages()->orderBy('created_at')->get();
@@ -101,6 +128,8 @@ class ConversationPage extends Component
             'user_id' => null,
             'content' => $responseText,
         ]);
+
+        $this->conversation->load('messages');
     }
 
     public function render()
