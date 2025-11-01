@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Services\LlmService;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
@@ -79,12 +80,16 @@ class ConversationPage extends Component
 
     protected function generateLlmResponse(): void
     {
-        sleep(1);
+        $llmService = app(LlmService::class);
+
+        $messages = $this->conversation->messages()->orderBy('created_at')->get();
+
+        $responseText = $llmService->generateResponse($messages);
 
         Message::create([
             'conversation_id' => $this->conversation->id,
             'user_id' => null,
-            'content' => 'Claude is the best',
+            'content' => $responseText,
         ]);
     }
 
