@@ -40,7 +40,7 @@ class LlmService
      */
     protected function renderChatPrompt(Conversation $conversation): string
     {
-        return View::make('prompts.chat', [
+        return View::make('prompts.chat2', [
             'conversation' => $conversation->load('application'),
         ])->render();
     }
