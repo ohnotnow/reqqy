@@ -27,14 +27,18 @@
     <div class="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900">
         <div class="max-w-4xl mx-auto space-y-4">
             @forelse($conversationMessages as $message)
-                <div wire:key="message-{{ $message->id }}" class="{{ $message->isFromUser() ? 'max-w-2xl ml-auto' : 'max-w-2xl' }}">
-                    @if($message->isFromUser())
+                <div wire:key="message-{{ $message['id'] }}" class="{{ $message['is_from_user'] ? 'max-w-2xl ml-auto' : 'max-w-2xl' }}">
+                    @if($message['is_from_user'])
                         <flux:callout color="blue" icon="user-circle" heading="You">
-                            {{ $message->content }}
+                            {{ $message['content'] }}
                         </flux:callout>
                     @else
-                        <flux:callout color="purple" icon="sparkles" heading="Reqqy">
-                            {{ $message->content }}
+                        <flux:callout
+                            color="purple"
+                            icon="sparkles"
+                            heading="{{ $message['is_pending'] ? 'Reqqy (thinking...)' : 'Reqqy' }}"
+                        >
+                            {{ $message['content'] }}
                         </flux:callout>
                     @endif
                 </div>
@@ -45,18 +49,6 @@
                     </flux:text>
                 </div>
             @endforelse
-
-            @if($isAwaitingResponse && !$conversation->isSignedOff())
-                <div
-                    wire:key="reqqy-thinking"
-                    wire:transition.opacity.duration.200ms
-                    class="max-w-2xl"
-                >
-                    <flux:callout color="purple" icon="sparkles" heading="Reqqy">
-                        Thinking through your request...
-                    </flux:callout>
-                </div>
-            @endif
 
             @if($conversation->isSignedOff())
                 <div class="max-w-2xl">

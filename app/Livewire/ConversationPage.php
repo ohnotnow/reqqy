@@ -7,6 +7,7 @@ use App\Models\Message;
 use App\Services\LlmService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -25,13 +26,15 @@ class ConversationPage extends Component
 
     public bool $isAwaitingResponse = false;
 
-    /** @var Collection<int, Message> */
+    /** @var Collection<int, array<string, mixed>> */
     public Collection $conversationMessages;
 
     public string $debugSummary = '';
 
     /** @var array<int, string> */
     public array $debugMessages = [];
+
+    protected ?string $pendingMessageKey = null;
 
     public function mount(): void
     {
@@ -70,6 +73,7 @@ class ConversationPage extends Component
         $this->messageContent = '';
 
         $this->isAwaitingResponse = true;
+        $this->addPendingMessage();
         $this->updateDebugInfo('Awaiting LLM response');
 
         $this->dispatch(
@@ -93,6 +97,7 @@ class ConversationPage extends Component
             return;
         }
 
+        $this->ensurePendingMessageExists();
         $this->updateDebugInfo('Generating LLM response from event');
 
         $this->generateLlmResponse();
@@ -113,6 +118,7 @@ class ConversationPage extends Component
 
         if ($lastMessage && $lastMessage->isFromUser()) {
             $this->isAwaitingResponse = true;
+            $this->addPendingMessage();
             $this->updateDebugInfo('Polling triggered LLM response');
 
             $this->generateLlmResponse();
@@ -166,6 +172,8 @@ class ConversationPage extends Component
             'content' => $responseText,
         ]);
 
+        $this->pendingMessageKey = null;
+
         $this->refreshMessages('LLM response persisted');
 
         $this->isAwaitingResponse = false;
@@ -177,19 +185,35 @@ class ConversationPage extends Component
         return Message::query()
             ->where('conversation_id', $this->conversation->id)
             ->orderBy('created_at')
-            ->get();
+            ->get()
+            ->map(fn (Message $message) => $this->normalizeMessage($message));
     }
 
     protected function refreshMessages(string $context): void
     {
         $this->conversationMessages = $this->loadMessages();
+
+        if ($this->isAwaitingResponse) {
+            $this->ensurePendingMessageExists();
+        }
+
         $this->updateDebugInfo($context);
     }
 
     protected function updateDebugInfo(string $context): void
     {
         $latest = $this->conversationMessages->last();
-        $lastAuthor = $latest ? ($latest->isFromUser() ? 'user' : 'reqqy') : 'none';
+        $lastAuthor = 'none';
+
+        if ($latest) {
+            if ($latest['is_from_user']) {
+                $lastAuthor = 'user';
+            } elseif ($latest['is_pending']) {
+                $lastAuthor = 'reqqy-pending';
+            } else {
+                $lastAuthor = 'reqqy';
+            }
+        }
 
         $this->debugSummary = sprintf(
             '%s | messages:%d | awaiting:%s | last:%s',
@@ -212,6 +236,64 @@ class ConversationPage extends Component
         }
 
         Log::debug('[ConversationPage] '.$message);
+    }
+
+    protected function normalizeMessage(Message $message): array
+    {
+        return [
+            'id' => $message->id,
+            'content' => $message->content,
+            'is_from_user' => $message->isFromUser(),
+            'is_pending' => false,
+            'created_at' => $message->created_at?->toDateTimeString(),
+        ];
+    }
+
+    protected function addPendingMessage(): void
+    {
+        if (! $this->isAwaitingResponse) {
+            return;
+        }
+
+        if (! $this->pendingMessageKey) {
+            $this->pendingMessageKey = 'pending-'.Str::uuid()->toString();
+        }
+
+        if ($this->conversationMessages->contains(fn ($message) => $message['id'] === $this->pendingMessageKey)) {
+            return;
+        }
+
+        $this->conversationMessages->push($this->createPendingMessage());
+
+        $this->updateDebugInfo('Pending message added');
+    }
+
+    protected function ensurePendingMessageExists(): void
+    {
+        if (! $this->isAwaitingResponse) {
+            return;
+        }
+
+        if (! $this->pendingMessageKey) {
+            $this->pendingMessageKey = 'pending-'.Str::uuid()->toString();
+        }
+
+        if ($this->conversationMessages->contains(fn ($message) => $message['id'] === $this->pendingMessageKey)) {
+            return;
+        }
+
+        $this->conversationMessages->push($this->createPendingMessage());
+    }
+
+    protected function createPendingMessage(): array
+    {
+        return [
+            'id' => $this->pendingMessageKey ?? 'pending-'.Str::uuid()->toString(),
+            'content' => 'Thinking through your request...',
+            'is_from_user' => false,
+            'is_pending' => true,
+            'created_at' => now()->toDateTimeString(),
+        ];
     }
 
     public function render()
