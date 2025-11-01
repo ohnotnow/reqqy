@@ -179,6 +179,36 @@ Remember: You have the laravel boost MCP tool which was written by the creators 
   - Generic greetings avoid complexity and potential errors
 - 📝 Next: Hook up job dispatch in ConversationPage `signOff()` method, then create `GenerateFeatureRequestPrdJob`
 
+### 2025-11-01 - Settings Page for Application Management
+- ✅ Created `SettingsPage` Livewire component with full CRUD functionality
+  - Component class: `app/Livewire/SettingsPage.php`
+  - Blade view: `resources/views/livewire/settings-page.blade.php`
+  - Route: `/settings` (wired up to existing sidebar Settings link)
+- ✅ Updated `Application` model with fillable fields and casts
+  - Added all database columns to `$fillable` array
+  - Added cast for `is_automated` boolean field
+- ✅ Implemented full CRUD operations:
+  - **Create**: Add new applications via flyout modal form
+  - **Read**: List all applications with their details (name, short_description, status, url, repo)
+  - **Update**: Edit existing applications (unique modal per application)
+  - **Delete**: Delete applications with wire:confirm confirmation dialog
+- ✅ UI/UX Features:
+  - Flyout modals for create and edit forms (consistent with HomePage pattern)
+  - URLs and repos displayed as clickable `flux:link` components with `target="_blank"`
+  - "Automated" badge shown for applications with `is_automated = true`
+  - Empty state with helpful message when no applications exist
+  - Form validation with required fields (name, status) and optional fields
+  - Form resets after create/update operations
+  - Fixed form state issue: clicking "Add Application" now resets form fields
+- ✅ Comprehensive test coverage (18 tests, 78 assertions)
+  - Test file: `tests/Feature/Livewire/SettingsPageTest.php`
+  - Following team conventions: using Eloquent models instead of database assertions
+  - Using `$model->fresh()` to verify changes, `Model::find()` to check existence
+  - Tests cover: rendering, display, create, update, delete, validation, error handling, field variations
+  - All tests passing
+- ✅ All code formatted with Laravel Pint
+- 📝 Next: Continue with remaining MVP tasks (hook up job dispatch, create GenerateFeatureRequestPrdJob)
+
 ## Next Steps - Admin Notifications
 
 ### Approach
