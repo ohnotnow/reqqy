@@ -209,6 +209,50 @@ Remember: You have the laravel boost MCP tool which was written by the creators 
 - ✅ All code formatted with Laravel Pint
 - 📝 Next: Continue with remaining MVP tasks (hook up job dispatch, create GenerateFeatureRequestPrdJob)
 
+### 2025-11-01 - Automated Application Overview System
+- ✅ Implemented automated `.llm.md` file fetching for application overviews
+- ✅ Updated `GetApplicationInfo` Artisan command (`app/Console/Commands/GetApplicationInfo.php`)
+  - Added `--app-id=<int>` option to process a specific application
+  - Added `--all-apps` flag to process all automated applications
+  - Error handling: sets overview to `.llm.md does not exist` when file is missing
+  - Handles both `file://` local paths and remote repos (GitHub stub for Phase Two)
+  - Strips `file://` prefix and trailing slashes from local paths
+- ✅ Updated `GetApplicationInfoJob` to use new command signature
+  - Job dispatches command with `--app-id` option
+  - Implements `ShouldQueue` for background processing
+- ✅ Created `ApplicationObserver` (`app/Observers/ApplicationObserver.php`)
+  - Dispatches `GetApplicationInfoJob` when automated application is created
+  - Dispatches job when application is updated to `is_automated = true`
+  - Does not dispatch when `is_automated` unchanged or changed to false
+  - Registered in `AppServiceProvider::boot()`
+- ✅ Added scheduled command (`routes/console.php`)
+  - Daily schedule: `Schedule::command('reqqy:get-application-info --all-apps')->daily()`
+  - Keeps all automated applications' overviews synchronized
+- ✅ Comprehensive test coverage (13 tests, 23 assertions)
+  - **GetApplicationInfoCommandTest** (8 tests, 17 assertions)
+    - Tests for both `--app-id` and `--all-apps` options
+    - Tests error handling for missing `.llm.md` files
+    - Tests file:// path handling and cleanup
+    - Tests edge cases (non-existent app, no automated apps, GitHub repos)
+  - **ApplicationObserverTest** (5 tests, 6 assertions)
+    - Tests job dispatch on create and update
+    - Tests no dispatch for non-automated apps
+    - Tests no dispatch when `is_automated` unchanged
+- ✅ Fixed `SettingsPageTest` failures caused by observer
+  - Added `Queue::fake()` to tests that create automated applications
+  - Prevents observer from overwriting test data
+  - All 37 tests passing with 117 assertions
+- ✅ All code formatted with Laravel Pint
+- ✅ Manual testing successful
+  - Command successfully reads `.llm.md` from project root (4549 characters)
+  - Observer correctly dispatches jobs when automated applications are created
+- 💡 **System Flow:**
+  1. User creates/updates application with `is_automated = true` → Observer dispatches job
+  2. Job calls Artisan command to fetch `.llm.md` content
+  3. Content populates `overview` field on Application model
+  4. Daily scheduled task keeps all automated applications synchronized
+- 📝 Next: Hook up job dispatch in ConversationPage `signOff()` method, create `GenerateFeatureRequestPrdJob`
+
 ## Next Steps - Admin Notifications
 
 ### Approach

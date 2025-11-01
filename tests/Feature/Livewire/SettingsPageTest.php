@@ -3,6 +3,7 @@
 use App\Livewire\SettingsPage;
 use App\Models\Application;
 use App\Models\User;
+use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
@@ -44,6 +45,8 @@ it('shows empty state when no applications exist', function () {
 });
 
 it('can create a new application', function () {
+    Queue::fake();
+
     $user = User::factory()->create();
 
     expect(Application::count())->toBe(0);
@@ -128,6 +131,8 @@ it('allows nullable fields when creating application', function () {
 });
 
 it('can load application data for editing', function () {
+    Queue::fake();
+
     $user = User::factory()->create();
 
     $application = Application::factory()->create([
