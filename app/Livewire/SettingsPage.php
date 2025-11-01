@@ -23,6 +23,11 @@ class SettingsPage extends Component
 
     public string $repo = '';
 
+    public function createApplication(): void
+    {
+        $this->resetForm();
+    }
+
     public function editApplication(int $id): void
     {
         $application = Application::findOrFail($id);

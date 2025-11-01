@@ -5,7 +5,7 @@
             <flux:text class="mt-2">Manage your Laravel applications</flux:text>
         </div>
         <flux:modal.trigger name="create-application">
-            <flux:button variant="primary" icon="plus">Add Application</flux:button>
+            <flux:button wire:click="createApplication" variant="primary" icon="plus">Add Application</flux:button>
         </flux:modal.trigger>
     </div>
 
@@ -54,7 +54,7 @@
                     </div>
                 </flux:card>
 
-                <flux:modal name="edit-application-{{ $application->id }}" class="md:w-96">
+                <flux:modal name="edit-application-{{ $application->id }}" variant="flyout" class="md:w-96">
                     <form wire:submit="updateApplication" class="space-y-6">
                         <div>
                             <flux:heading size="lg">Edit Application</flux:heading>
@@ -88,7 +88,7 @@
         </flux:card>
     @endif
 
-    <flux:modal name="create-application" class="md:w-96">
+    <flux:modal name="create-application" variant="flyout" class="md:w-96">
         <form wire:submit="saveApplication" class="space-y-6">
             <div>
                 <flux:heading size="lg">Add Application</flux:heading>
