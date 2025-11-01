@@ -1,7 +1,10 @@
-<div class="h-screen flex flex-col">
+<div class="h-screen flex flex-col" wire:poll.50s>
     <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
         <div class="max-w-4xl mx-auto flex items-center justify-between">
-            <div>
+            <div class="space-y-2">
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Debug: {{ $debugSummary }}
+                </p>
                 <flux:heading size="lg">
                     @if($conversation->application)
                         {{ $conversation->application->name }} - New Feature
@@ -24,11 +27,7 @@
     <div class="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900">
         <div class="max-w-4xl mx-auto space-y-4">
             @forelse($conversationMessages as $message)
-                <div
-                    wire:key="message-{{ $message->id }}"
-                    wire:transition.opacity.duration.200ms
-                    class="{{ $message->isFromUser() ? 'max-w-2xl ml-auto' : 'max-w-2xl' }}"
-                >
+                <div wire:key="message-{{ $message->id }}" class="{{ $message->isFromUser() ? 'max-w-2xl ml-auto' : 'max-w-2xl' }}">
                     @if($message->isFromUser())
                         <flux:callout color="blue" icon="user-circle" heading="You">
                             {{ $message->content }}

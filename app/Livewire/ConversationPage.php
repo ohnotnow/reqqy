@@ -6,6 +6,7 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Services\LlmService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -27,6 +28,11 @@ class ConversationPage extends Component
     /** @var Collection<int, Message> */
     public Collection $conversationMessages;
 
+    public string $debugSummary = '';
+
+    /** @var array<int, string> */
+    public array $debugMessages = [];
+
     public function mount(): void
     {
         if ($this->conversation_id) {
@@ -40,7 +46,7 @@ class ConversationPage extends Component
             $this->redirect(route('conversation', ['conversation_id' => $this->conversation->id]), navigate: true);
         }
 
-        $this->conversationMessages = $this->loadMessages();
+        $this->refreshMessages('Mounted conversation');
     }
 
     public function sendMessage(): void
@@ -59,11 +65,12 @@ class ConversationPage extends Component
             'content' => $validated['messageContent'],
         ]);
 
-        $this->conversationMessages = $this->loadMessages();
+        $this->refreshMessages('User message persisted');
 
         $this->messageContent = '';
 
         $this->isAwaitingResponse = true;
+        $this->updateDebugInfo('Awaiting LLM response');
 
         $this->dispatch(
             'user-message-created',
@@ -86,9 +93,11 @@ class ConversationPage extends Component
             return;
         }
 
+        $this->updateDebugInfo('Generating LLM response from event');
+
         $this->generateLlmResponse();
 
-        $this->conversationMessages = $this->loadMessages();
+        $this->refreshMessages('LLM response generated via event');
     }
 
     public function checkForUnansweredMessages(): void
@@ -104,6 +113,7 @@ class ConversationPage extends Component
 
         if ($lastMessage && $lastMessage->isFromUser()) {
             $this->isAwaitingResponse = true;
+            $this->updateDebugInfo('Polling triggered LLM response');
 
             $this->generateLlmResponse();
         }
@@ -127,15 +137,18 @@ class ConversationPage extends Component
             'content' => "Thank you for providing your requirements! I'll now generate the documentation for the development team. An admin will review your request and be in touch soon.",
         ]);
 
-        $this->conversationMessages = $this->loadMessages();
+        $this->refreshMessages('Conversation signed off');
 
         $this->conversation->refresh();
 
         $this->isAwaitingResponse = false;
+        $this->updateDebugInfo('Conversation signed off');
     }
 
     protected function generateLlmResponse(): void
     {
+        $this->updateDebugInfo('Starting LLM response generation');
+
         if (! app()->runningUnitTests()) {
             sleep(5);
         }
@@ -153,9 +166,10 @@ class ConversationPage extends Component
             'content' => $responseText,
         ]);
 
-        $this->conversationMessages = $this->loadMessages();
+        $this->refreshMessages('LLM response persisted');
 
         $this->isAwaitingResponse = false;
+        $this->updateDebugInfo('Awaiting flag reset after LLM response');
     }
 
     protected function loadMessages(): Collection
@@ -164,6 +178,40 @@ class ConversationPage extends Component
             ->where('conversation_id', $this->conversation->id)
             ->orderBy('created_at')
             ->get();
+    }
+
+    protected function refreshMessages(string $context): void
+    {
+        $this->conversationMessages = $this->loadMessages();
+        $this->updateDebugInfo($context);
+    }
+
+    protected function updateDebugInfo(string $context): void
+    {
+        $latest = $this->conversationMessages->last();
+        $lastAuthor = $latest ? ($latest->isFromUser() ? 'user' : 'reqqy') : 'none';
+
+        $this->debugSummary = sprintf(
+            '%s | messages:%d | awaiting:%s | last:%s',
+            $context,
+            $this->conversationMessages->count(),
+            $this->isAwaitingResponse ? 'yes' : 'no',
+            $lastAuthor
+        );
+
+        $this->recordDebug($this->debugSummary);
+    }
+
+    protected function recordDebug(string $message): void
+    {
+        $timestamped = now()->format('H:i:s').' '.$message;
+        $this->debugMessages[] = $timestamped;
+
+        if (count($this->debugMessages) > 25) {
+            $this->debugMessages = array_slice($this->debugMessages, -25);
+        }
+
+        Log::debug('[ConversationPage] '.$message);
     }
 
     public function render()
