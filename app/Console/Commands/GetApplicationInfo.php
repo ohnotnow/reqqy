@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Application;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\File;
 
 class GetApplicationInfo extends Command
 {
@@ -45,22 +46,25 @@ class GetApplicationInfo extends Command
     {
         // assume repoUrl is a local path
         if (str_starts_with($repoUri, 'file://')) {
-            $repoUri = str_replace('file://', '', $repoUri);
-            // trim trailing slash
-            $repoUri = rtrim($repoUri, '/');
+            return $this->getOverviewFromLocalPath($repoUri);
         }
 
-        $overview = $this->getOverviewFromLocalPath($repoUri);
-        return $overview;
+        return $this->getGithubOverview($repoUri);
     }
 
     private function getOverviewFromLocalPath(string $repoUri): string
     {
-        try {
-            $contents = file_get_contents("$repoUri/.llm.md");
-            return $contents;
-        } catch (\Exception $e) {
-            return "Error getting overview from local path: {$e->getMessage()}";
-        }
+        $repoUri = str_replace('file://', '', $repoUri);
+        $repoUri = rtrim($repoUri, '/');
+
+        $contents = File::exists("$repoUri/.llm.md") ? File::get("$repoUri/.llm.md") : '';
+
+        return $contents;
+    }
+
+    private function getGithubOverview(string $repoUri): string
+    {
+        // TODO: Implement this later
+        return '';
     }
 }
