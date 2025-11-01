@@ -24,7 +24,7 @@ class GetApplicationInfoJob implements ShouldQueue
     public function handle(): void
     {
         Artisan::call('reqqy:get-application-info', [
-            'appId' => $this->appId,
+            '--app-id' => $this->appId,
         ]);
     }
 }
