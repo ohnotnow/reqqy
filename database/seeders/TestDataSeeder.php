@@ -23,7 +23,9 @@ class TestDataSeeder extends Seeder
             'is_admin' => true,
         ]);
 
-        Application::factory(10)->create();
+        Application::factory(5)->internal()->create();
+        Application::factory(3)->external()->create();
+        Application::factory(2)->proposed()->create();
         Conversation::factory(10)->create();
         foreach (Conversation::all() as $conversation) {
             $roles = ['user', 'assistant'];

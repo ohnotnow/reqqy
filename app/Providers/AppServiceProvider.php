@@ -6,6 +6,7 @@ use App\Models\Application;
 use App\Models\Document;
 use App\Observers\ApplicationObserver;
 use App\Observers\DocumentObserver;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -25,5 +26,9 @@ class AppServiceProvider extends ServiceProvider
     {
         Application::observe(ApplicationObserver::class);
         Document::observe(DocumentObserver::class);
+
+        Blade::if('admin', function () {
+            return auth()->check() && auth()->user()->is_admin;
+        });
     }
 }

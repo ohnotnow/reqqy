@@ -68,12 +68,12 @@ Remember: You have the laravel boost MCP tool which was written by the creators 
   - [X] Store generated PRD as Document
   - [ ] Create GenerateFeatureRequestPrdJob
   - [ ] Hook up job dispatch in signOff() method
-- [ ] Admin notification and document access
+- [X] Admin notification and document access
   - [X] DocumentObserver to watch for new Documents
   - [X] Notification class for admin users
   - [X] Make User model Notifiable
-  - [ ] Admin view to list conversations/documents
-  - [ ] Copy/download functionality for documents
+  - [X] Admin view to list conversations/documents
+  - [X] Copy/download functionality for documents
 - [ ] Testing and polish
   - [ ] Write Pest tests for core flows
   - [ ] UI/UX refinement with FluxUI
@@ -381,6 +381,205 @@ Remember: You have the laravel boost MCP tool which was written by the creators 
   - Scalable architecture (handles 1-100+ conversations easily)
   - Secure download functionality with authorization checks
 - 📝 Next: Hook up job dispatch in ConversationPage `signOff()` method, create `GenerateFeatureRequestPrdJob`
+
+### 2025-11-01 - Phase 1: Application Categories & Schema Enhancement
+- ✅ **Evolved Application Mental Model**: Applications now represent a three-category software catalog (Internal, External, Proposed)
+- ✅ **Schema Changes:**
+  - Added `category` field to applications table (enum: internal/external/proposed, default: 'internal')
+  - Added `source_conversation_id` foreign key to applications table (nullable, links to originating conversation)
+  - Made `status` field nullable (required for Proposed/External categories)
+- ✅ **ApplicationCategory Enum** (`app/ApplicationCategory.php`):
+  - `Internal` - Apps owned/managed by the organization (can have features requested)
+  - `External` - Third-party SaaS/tools (reference only, for LLM context)
+  - `Proposed` - Ideas from conversations awaiting approval (staging area)
+- ✅ **Application Model Updates:**
+  - Added category enum casting
+  - Added fillable fields: `category`, `source_conversation_id`
+  - New helper methods: `canHaveFeaturesRequested()`, `isProposal()`, `isExternal()`, `isInternal()`
+  - New `promoteToInternal()` method for lifecycle transition (Proposed → Internal)
+  - New `sourceConversation()` relationship (links to originating conversation)
+  - Updated `conversations()` relationship
+- ✅ **ApplicationFactory Updates:**
+  - Added category states: `internal()`, `external()`, `proposed()`
+  - Each state sets appropriate defaults (e.g., External apps: no repo, not automated)
+  - Default factory creates Internal applications
+- ✅ **TestDataSeeder Updates:**
+  - Now creates: 5 Internal, 3 External, 2 Proposed applications
+  - Provides realistic test data for all three categories
+- ✅ **All 91 tests passing** with 261 assertions
+- ✅ All code formatted with Laravel Pint
+- 💡 **Key Architecture Decision:** Single Application model with three categories (not separate models) - keeps LLM context simple, enables natural lifecycle progression, maintains clean relationships
+- 📝 **Intended Workflows:**
+  1. **Feature requests** for existing Internal applications (works end-to-end)
+  2. **New application proposals** → Creates Proposed → Admin promotes to Internal (needs implementation)
+  3. **External application awareness** for LLM to suggest existing solutions (needs implementation)
+
+### 2025-11-01 - Phase 2: Authorization & Access Control
+- ✅ **Admin Middleware** (`app/Http/Middleware/Admin.php`):
+  - Checks if user is authenticated AND has `is_admin = true`
+  - Returns 403 Forbidden for non-admin users
+  - Registered in `bootstrap/app.php` with alias `admin`
+  - Clean, reusable middleware for any admin-only route
+- ✅ **@admin Blade Directive** (registered in `AppServiceProvider`):
+  - Checks `auth()->check() && auth()->user()->is_admin`
+  - Simple syntax: `@admin ... @endadmin`
+  - Can be used anywhere in blade views for conditional rendering
+- ✅ **Route Protection:**
+  - Applied `admin` middleware to Settings route
+  - Applied `admin` middleware to all admin routes (`/admin/conversations/*`)
+  - Clean nested route grouping structure
+- ✅ **Sidebar Updates:**
+  - Settings link now uses `@admin` directive (hidden from non-admins)
+  - Conversations link now uses `@admin` directive (consistent approach)
+  - Non-admin users see clean, minimal sidebar (Home + Help only)
+- ✅ **Comprehensive Testing:**
+  - 5 new tests for Admin middleware
+  - Tests cover: admin access, non-admin blocked, guest redirected
+  - All 96 tests passing with 267 assertions
+- ✅ All code formatted with Laravel Pint
+- 💡 **Design Benefits:**
+  - Single source of truth for admin authorization
+  - Easy to extend if admin logic becomes more complex
+  - Consistent UX (UI elements hidden + routes protected)
+  - Well-tested authorization layer
+- 📝 Next: Implement Phase 3 - Application Auto-Creation (Proposed State)
+
+## Next Steps - Phase 3: Application Auto-Creation (Proposed State)
+
+### Overview
+When an admin approves a "New Application" conversation (changes `ConversationStatus` to `Approved`), the system should automatically create a new `Application` record with `category = Proposed`. This creates a two-step approval workflow: (1) approve the conversation/idea, (2) review the proposal in Settings and promote to Internal if greenlit.
+
+### Implementation Plan
+
+#### 1. Field Extraction Strategy
+**Decision needed:** How do we populate the new Proposed Application's fields?
+
+**Minimal Approach (Recommended for MVP):**
+- Extract `name` from first user message or PRD document title
+- Set `category` = 'proposed'
+- Set `source_conversation_id` = conversation ID
+- Leave `short_description`, `url`, `repo`, `status` as NULL
+- Admin fills in details manually before promoting to Internal
+
+**Smart Extraction Approach (Future Enhancement):**
+- Use LLM to extract `name` and `short_description` from PRD document
+- More automated, but adds complexity and cost
+
+**Fields to populate:**
+```php
+[
+    'category' => ApplicationCategory::Proposed,
+    'source_conversation_id' => $conversation->id,
+    'name' => '???', // Extract from conversation/PRD
+    'short_description' => null, // Admin fills in later
+    'url' => null, // Doesn't exist yet
+    'repo' => null, // Doesn't exist yet
+    'is_automated' => false,
+    'status' => null, // Not relevant until promoted
+    'overview' => null, // Could copy from PRD later
+]
+```
+
+#### 2. ConversationObserver Implementation
+- [ ] Create `ConversationObserver` class
+- [ ] Register observer in `AppServiceProvider::boot()`
+- [ ] Implement `updated()` method to detect status changes
+- [ ] Check if conversation was approved (`status` changed to `Approved`)
+- [ ] Check if conversation is for new application (`application_id` is NULL)
+- [ ] If both true, create new Proposed Application
+- [ ] Update conversation's `application_id` to link to new Proposed app
+
+**Observer Logic:**
+```php
+public function updated(Conversation $conversation): void
+{
+    // Only process if status changed to Approved
+    if (!$conversation->wasChanged('status') || $conversation->status !== ConversationStatus::Approved) {
+        return;
+    }
+
+    // Only process new application requests (no existing app linked)
+    if ($conversation->application_id !== null) {
+        return;
+    }
+
+    // Create Proposed Application
+    $application = Application::create([
+        'category' => ApplicationCategory::Proposed,
+        'source_conversation_id' => $conversation->id,
+        'name' => $this->extractApplicationName($conversation),
+    ]);
+
+    // Link conversation to new application
+    $conversation->application_id = $application->id;
+    $conversation->saveQuietly(); // Avoid triggering observer again
+}
+```
+
+#### 3. Name Extraction Strategy
+- [ ] Decide on extraction approach (minimal vs smart)
+- [ ] Implement extraction logic (helper method or separate service)
+- [ ] Handle edge cases (empty conversations, no PRD yet)
+
+**Minimal approach example:**
+```php
+private function extractApplicationName(Conversation $conversation): string
+{
+    // Option 1: Use first user message
+    $firstMessage = $conversation->messages()
+        ->whereNotNull('user_id')
+        ->orderBy('created_at')
+        ->first();
+
+    if ($firstMessage) {
+        // Take first 50 chars as a naive name extraction
+        return Str::limit($firstMessage->content, 50, '');
+    }
+
+    // Fallback: Generic name
+    return 'New Application Proposal';
+}
+```
+
+#### 4. Admin Notification
+- [ ] Create `NewProposedApplicationCreated` notification class
+- [ ] Notify all admin users when Proposed application is created
+- [ ] Email should include:
+  - Link to conversation that spawned it
+  - Link to Settings page to review proposal
+  - Option to promote to Internal or reject
+- [ ] Consider reusing existing notification pattern from DocumentObserver
+
+#### 5. Testing Strategy
+- [ ] Test ConversationObserver triggers on status change to Approved
+- [ ] Test Proposed application is NOT created if conversation already has `application_id`
+- [ ] Test Proposed application is NOT created if status changes to other values (Rejected, Completed, etc.)
+- [ ] Test bidirectional linking (Conversation ↔ Application)
+- [ ] Test name extraction from various conversation scenarios
+- [ ] Test admin notification is sent to all admins
+- [ ] Test observer doesn't trigger infinite loops (use `saveQuietly()`)
+
+#### 6. Additional Considerations
+- [ ] Decide when to trigger: on `Approved` or `Completed` status?
+- [ ] Handle conversations that get approved before PRD is generated
+- [ ] Consider queueing the application creation (background job vs immediate)
+- [ ] Error handling: what if name extraction fails? duplicate names?
+
+### Success Criteria
+- ✅ Conversation approved → Proposed application auto-created
+- ✅ Conversation and application bidirectionally linked
+- ✅ Admin users notified about new proposal
+- ✅ Application appears in Settings (future: dedicated "Proposed" section)
+- ✅ All tests passing with new observer logic
+- ✅ No infinite observer loops or N+1 queries
+
+### Future Enhancements (Phase 4+)
+- Settings UI refactor to show three application categories in separate tabs/sections
+- Promote/Reject buttons for Proposed applications in Settings
+- LLM context integration: pass all applications (3 categories) to chat prompts
+- Filter "New Feature" dropdown to only show Internal applications
+- Smart name extraction using LLM
+- Bulk approve/reject for multiple proposals
 
 ## Next Steps - Admin Notifications
 
