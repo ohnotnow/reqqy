@@ -14,6 +14,10 @@ class ConversationDetailPage extends Component
 
     public string $status = '';
 
+    public bool $showFullConversation = false;
+
+    public array $expandedDocuments = [];
+
     public function mount(): void
     {
         $conversation = Conversation::findOrFail($this->conversation_id);
@@ -36,6 +40,15 @@ class ConversationDetailPage extends Component
         $conversation->update(['status' => ConversationStatus::from($validated['status'])]);
 
         $this->status = $conversation->fresh()->status->value;
+    }
+
+    public function toggleDocument(int $documentId): void
+    {
+        if (in_array($documentId, $this->expandedDocuments)) {
+            $this->expandedDocuments = array_diff($this->expandedDocuments, [$documentId]);
+        } else {
+            $this->expandedDocuments[] = $documentId;
+        }
     }
 
     public function render()
