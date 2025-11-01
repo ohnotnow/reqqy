@@ -6,6 +6,9 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
 use Livewire\Livewire;
+use Prism\Prism\Facades\Prism;
+use Prism\Prism\Testing\TextResponseFake;
+use Prism\Prism\ValueObjects\Usage;
 
 uses()->group('livewire');
 
@@ -78,6 +81,12 @@ it('prevents users from accessing other users conversations', function () {
 it('can send a message and receive llm response', function () {
     $user = User::factory()->create();
     $conversation = Conversation::factory()->create(['user_id' => $user->id]);
+
+    $fakeResponse = TextResponseFake::make()
+        ->withText('Claude is the best')
+        ->withUsage(new Usage(10, 5));
+
+    Prism::fake([$fakeResponse]);
 
     expect(Message::count())->toBe(0);
 
@@ -223,6 +232,12 @@ it('passes conversation history to llm when generating response', function () {
         'created_at' => now()->subMinutes(1),
     ]);
 
+    $fakeResponse = TextResponseFake::make()
+        ->withText('Claude is the best')
+        ->withUsage(new Usage(20, 8));
+
+    $fake = Prism::fake([$fakeResponse]);
+
     $component = Livewire::actingAs($user)
         ->test(ConversationPage::class, ['conversation_id' => $conversation->id])
         ->set('messageContent', 'Second user message')
@@ -240,4 +255,17 @@ it('passes conversation history to llm when generating response', function () {
 
     $llmMessages = Message::whereNull('user_id')->orderBy('created_at', 'desc')->get();
     expect($llmMessages->first()->content)->toBe('Claude is the best');
+
+    $fake->assertRequest(function (array $requests) {
+        expect($requests)->toHaveCount(1);
+
+        /** @var \Prism\Prism\Text\Request $request */
+        $request = $requests[0];
+        $messages = $request->messages();
+
+        expect($messages)->toHaveCount(3);
+        expect($messages[0]->content)->toBe('First user message');
+        expect($messages[1]->content)->toBe('First LLM response');
+        expect($messages[2]->content)->toBe('Second user message');
+    });
 });
