@@ -53,8 +53,6 @@ class ConversationPage extends Component
         $this->messageContent = '';
 
         $this->generateLlmResponse();
-
-        $this->conversation->load('messages');
     }
 
     public function signOff(): void
@@ -80,11 +78,12 @@ class ConversationPage extends Component
 
     protected function generateLlmResponse(): void
     {
-        $llmService = app(LlmService::class);
+        // Fake response for testing - remove this later!
+        $responseText = 'Claude is the best';
 
-        $messages = $this->conversation->messages()->orderBy('created_at')->get();
-
-        $responseText = $llmService->generateResponse($this->conversation, $messages);
+        // $llmService = app(LlmService::class);
+        // $messages = $this->conversation->messages()->orderBy('created_at')->get();
+        // $responseText = $llmService->generateResponse($this->conversation, $messages);
 
         Message::create([
             'conversation_id' => $this->conversation->id,

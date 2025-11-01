@@ -82,12 +82,6 @@ it('can send a message and receive llm response', function () {
     $user = User::factory()->create();
     $conversation = Conversation::factory()->create(['user_id' => $user->id]);
 
-    $fakeResponse = TextResponseFake::make()
-        ->withText('This is the LLM response')
-        ->withUsage(new Usage(10, 20));
-
-    Prism::fake([$fakeResponse]);
-
     expect(Message::count())->toBe(0);
 
     Livewire::actingAs($user)
@@ -103,7 +97,7 @@ it('can send a message and receive llm response', function () {
     expect($userMessage->conversation_id)->toBe($conversation->id);
 
     $llmMessage = Message::whereNull('user_id')->first();
-    expect($llmMessage->content)->toBe('This is the LLM response');
+    expect($llmMessage->content)->toBe('Claude is the best');
     expect($llmMessage->conversation_id)->toBe($conversation->id);
 });
 
@@ -226,12 +220,6 @@ it('passes conversation history to llm when generating response', function () {
         'created_at' => now()->subMinutes(1),
     ]);
 
-    $fakeResponse = TextResponseFake::make()
-        ->withText('Second LLM response based on history')
-        ->withUsage(new Usage(15, 30));
-
-    Prism::fake([$fakeResponse]);
-
     Livewire::actingAs($user)
         ->test(ConversationPage::class, ['conversation_id' => $conversation->id])
         ->set('messageContent', 'Second user message')
@@ -240,5 +228,5 @@ it('passes conversation history to llm when generating response', function () {
     expect(Message::count())->toBe(4);
 
     $llmMessages = Message::whereNull('user_id')->orderBy('created_at', 'desc')->get();
-    expect($llmMessages->first()->content)->toBe('Second LLM response based on history');
+    expect($llmMessages->first()->content)->toBe('Claude is the best');
 });
