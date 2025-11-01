@@ -12,6 +12,10 @@ use Prism\Prism\ValueObjects\Usage;
 
 uses()->group('livewire');
 
+beforeEach(function () {
+    config(['reqqy.llm' => 'anthropic/claude-3-5-sonnet-20241022']);
+});
+
 it('can render the conversation page', function () {
     $user = User::factory()->create();
     $conversation = Conversation::factory()->create(['user_id' => $user->id]);

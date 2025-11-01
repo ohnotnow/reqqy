@@ -84,7 +84,7 @@ class ConversationPage extends Component
 
         $messages = $this->conversation->messages()->orderBy('created_at')->get();
 
-        $responseText = $llmService->generateResponse($messages);
+        $responseText = $llmService->generateResponse($this->conversation, $messages);
 
         Message::create([
             'conversation_id' => $this->conversation->id,

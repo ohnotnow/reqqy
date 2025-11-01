@@ -58,9 +58,10 @@ Remember: You have the laravel boost MCP tool which was written by the creators 
   - [X] Unified routing to ConversationPage with optional application_id parameter
 - [X] Implement conversation flow
   - [X] ConversationPage Livewire component for chat interface
-  - [X] Integration with Prism for LLM calls
+  - [X] Integration with Prism for LLM calls (via LlmService wrapper)
   - [X] Message persistence and display
   - [X] "Sign Off" button to complete conversation
+  - [X] LlmService wrapper class for provider flexibility
 - [ ] PRD generation
   - [X] Create PRD template/format (Blade template approach)
   - [X] Background job to process conversation → PRD (GenerateNewApplicationPrdJob)
@@ -68,9 +69,9 @@ Remember: You have the laravel boost MCP tool which was written by the creators 
   - [ ] Create GenerateFeatureRequestPrdJob
   - [ ] Hook up job dispatch in signOff() method
 - [ ] Admin notification and document access
-  - [ ] DocumentObserver to watch for new Documents
-  - [ ] Notification class for admin users
-  - [ ] Make User model Notifiable
+  - [X] DocumentObserver to watch for new Documents
+  - [X] Notification class for admin users
+  - [X] Make User model Notifiable
   - [ ] Admin view to list conversations/documents
   - [ ] Copy/download functionality for documents
 - [ ] Testing and polish
@@ -251,6 +252,85 @@ Remember: You have the laravel boost MCP tool which was written by the creators 
   2. Job calls Artisan command to fetch `.llm.md` content
   3. Content populates `overview` field on Application model
   4. Daily scheduled task keeps all automated applications synchronized
+- 📝 Next: Hook up job dispatch in ConversationPage `signOff()` method, create `GenerateFeatureRequestPrdJob`
+
+### 2025-11-01 - Real LLM Integration with LlmService
+- ✅ Created `LlmService` wrapper class (`app/Services/LlmService.php`)
+  - Abstracts Prism integration for future flexibility (preparing for Taylor's official Laravel AI SDK)
+  - Litellm-style configuration format: `provider/model` (e.g., `anthropic/claude-3-5-sonnet-20241022`)
+  - Configured via `config/reqqy.php` and `REQQY_LLM` environment variable
+  - Supports three providers: Anthropic, OpenAI, and OpenRouter
+  - Case-insensitive provider names for convenience
+- ✅ Comprehensive validation and error handling:
+  - Validates config is not empty/null
+  - Validates format includes `/` separator
+  - Throws helpful exceptions for unsupported providers with clear guidance
+  - Error messages direct users to set `REQQY_LLM` in `.env` file
+- ✅ Core functionality:
+  - `generateResponse()` method accepts collection of Message models
+  - Converts messages to Prism format (UserMessage/AssistantMessage)
+  - Passes full conversation history for context-aware responses
+  - Returns plain text response from LLM
+- ✅ Updated `ConversationPage` component:
+  - Replaced fake "Claude is the best" responses with real LLM integration
+  - Uses LlmService via dependency injection
+  - Fetches conversation history ordered chronologically
+  - Removed artificial 1-second delay (real LLM responses now)
+- ✅ Comprehensive test coverage (17 new tests):
+  - **LlmServiceTest** (12 tests, 19 assertions)
+    - Tests all three supported providers
+    - Tests empty/null config validation
+    - Tests missing slash separator
+    - Tests unsupported provider detection
+    - Tests case-insensitive provider names
+    - Tests conversation message handling and ordering
+  - **ConversationPageTest** (13 tests, 42 assertions)
+    - Full end-to-end testing with Prism::fake()
+    - Tests rendering, conversation creation, message flow
+    - Tests LLM response integration with conversation history
+    - Tests validation, sign-off flow, authorization
+  - All 62 tests passing with 178 assertions
+- ✅ All code formatted with Laravel Pint
+- ✅ Manual browser testing successful - working perfectly first time!
+- 💡 **Design Benefits:**
+  - Easy to swap LLM providers by changing one env variable
+  - Clean abstraction layer makes future SDK migration simple
+  - Follows team conventions: simple, readable, well-tested
+  - Litellm-style format familiar to developers from Python ecosystem
+- 📝 Next: Hook up job dispatch in ConversationPage `signOff()` method, create `GenerateFeatureRequestPrdJob`
+
+### 2025-11-01 - Context-Aware Chat Prompts & Flexible LlmService
+- ✅ Created context-aware Business Analyst prompt system (`resources/views/prompts/chat.blade.php`)
+  - Preserved excellent BA persona from previous iteration (consultative, conversational tone)
+  - Dynamic context sections based on conversation type:
+    - **New Application**: Guides user to articulate core problem, target users, essential functionality
+    - **Feature Request**: Provides application name, short description, and full `.llm.md` overview
+  - Conditional rendering of application details (short_description and overview only if available)
+  - LLM receives full context about existing applications to ask informed integration questions
+- ✅ Enhanced `LlmService` for maximum reusability:
+  - **New flexible signature**: `generateResponse(Conversation $conversation, Collection $messages, ?string $systemPrompt = null)`
+  - Optional `$systemPrompt` parameter: pass custom prompt string or null for default chat prompt
+  - Renamed `renderSystemPrompt()` → `renderChatPrompt()` for clarity (specific to chat flow)
+  - Uses null coalescing operator for elegant default handling
+  - Service now reusable across entire application (chat, PRD generation, future use cases)
+- ✅ Updated method implementation:
+  - `renderChatPrompt()` renders Blade template with conversation + application context
+  - Eager loads application relationship to ensure context is available
+  - System prompt passed via `->withSystemPrompt()` to Prism
+- ✅ Comprehensive test coverage (5 new tests):
+  - Tests default chat prompt is used when no custom prompt provided
+  - Tests custom prompt acceptance and usage
+  - Tests chat prompt rendering for new application requests
+  - Tests chat prompt rendering with full application context (name, description, overview)
+  - Tests chat prompt rendering with minimal application context (name only)
+  - All 67 tests passing with 192 assertions
+- ✅ All code formatted with Laravel Pint
+- 💡 **Design Benefits:**
+  - Chat flow gets context-aware prompts automatically (no code changes needed in ConversationPage)
+  - PRD generation can pass custom prompts: `$service->generateResponse($conversation, $messages, $prdPrompt)`
+  - Any future LLM interaction can leverage the same service with custom prompts
+  - Clean separation of concerns: service handles Prism complexity, callers control prompts
+  - Business Analyst prompt ensures high-quality requirements gathering
 - 📝 Next: Hook up job dispatch in ConversationPage `signOff()` method, create `GenerateFeatureRequestPrdJob`
 
 ## Next Steps - Admin Notifications
