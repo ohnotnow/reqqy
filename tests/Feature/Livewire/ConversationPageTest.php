@@ -85,7 +85,8 @@ it('can send a message and receive llm response', function () {
         ->test(ConversationPage::class, ['conversation_id' => $conversation->id])
         ->set('messageContent', 'Hello, how are you?')
         ->call('sendMessage')
-        ->assertSet('messageContent', '');
+        ->assertSet('messageContent', '')
+        ->assertSet('isAwaitingResponse', true);
 
     expect(Message::count())->toBe(1);
 
@@ -93,7 +94,8 @@ it('can send a message and receive llm response', function () {
     expect($userMessage->content)->toBe('Hello, how are you?');
     expect($userMessage->conversation_id)->toBe($conversation->id);
 
-    $component->call('handleUserMessageCreated', $userMessage->id);
+    $component->call('handleUserMessageCreated', $userMessage->id)
+        ->assertSet('isAwaitingResponse', false);
 
     expect(Message::count())->toBe(2);
 
@@ -224,13 +226,15 @@ it('passes conversation history to llm when generating response', function () {
     $component = Livewire::actingAs($user)
         ->test(ConversationPage::class, ['conversation_id' => $conversation->id])
         ->set('messageContent', 'Second user message')
-        ->call('sendMessage');
+        ->call('sendMessage')
+        ->assertSet('isAwaitingResponse', true);
 
     expect(Message::count())->toBe(3);
 
     $userMessage = Message::where('user_id', $user->id)->latest()->first();
 
-    $component->call('handleUserMessageCreated', $userMessage->id);
+    $component->call('handleUserMessageCreated', $userMessage->id)
+        ->assertSet('isAwaitingResponse', false);
 
     expect(Message::count())->toBe(4);
 

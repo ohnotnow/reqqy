@@ -21,6 +21,8 @@ class ConversationPage extends Component
 
     public string $messageContent = '';
 
+    public bool $isAwaitingResponse = false;
+
     public function mount(): void
     {
         if ($this->conversation_id) {
@@ -55,6 +57,8 @@ class ConversationPage extends Component
 
         $this->messageContent = '';
 
+        $this->isAwaitingResponse = true;
+
         $this->dispatch(
             'user-message-created',
             messageId: $message->id
@@ -71,6 +75,8 @@ class ConversationPage extends Component
         $message = Message::find($messageId);
 
         if (! $message || $message->conversation_id !== $this->conversation->id || ! $message->isFromUser()) {
+            $this->isAwaitingResponse = false;
+
             return;
         }
 
@@ -88,6 +94,8 @@ class ConversationPage extends Component
         $lastMessage = $this->conversation->messages()->latest()->first();
 
         if ($lastMessage && $lastMessage->isFromUser()) {
+            $this->isAwaitingResponse = true;
+
             $this->generateLlmResponse();
         }
     }
@@ -111,13 +119,18 @@ class ConversationPage extends Component
         ]);
 
         $this->conversation->load('messages');
+
+        $this->isAwaitingResponse = false;
     }
 
     protected function generateLlmResponse(): void
     {
+        if (! app()->runningUnitTests()) {
+            sleep(5);
+        }
+
         // Fake response for testing - remove this later!
         $responseText = 'Claude is the best';
-        sleep(5);
 
         // $llmService = app(LlmService::class);
         // $messages = $this->conversation->messages()->orderBy('created_at')->get();
@@ -130,6 +143,8 @@ class ConversationPage extends Component
         ]);
 
         $this->conversation->load('messages');
+
+        $this->isAwaitingResponse = false;
     }
 
     public function render()
