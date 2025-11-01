@@ -16,8 +16,6 @@ class ConversationDetailPage extends Component
 
     public bool $showFullConversation = false;
 
-    public array $expandedDocuments = [];
-
     public function mount(): void
     {
         $conversation = Conversation::findOrFail($this->conversation_id);
@@ -42,13 +40,21 @@ class ConversationDetailPage extends Component
         $this->status = $conversation->fresh()->status->value;
     }
 
-    public function toggleDocument(int $documentId): void
+    public function downloadDocument(int $documentId)
     {
-        if (in_array($documentId, $this->expandedDocuments)) {
-            $this->expandedDocuments = array_diff($this->expandedDocuments, [$documentId]);
-        } else {
-            $this->expandedDocuments[] = $documentId;
-        }
+        $conversation = Conversation::findOrFail($this->conversation_id);
+
+        $this->authorize('view', $conversation);
+
+        $document = $conversation->documents()->findOrFail($documentId);
+
+        $filename = str($document->name)->slug()->append('.md')->toString();
+
+        return response()->streamDownload(function () use ($document) {
+            echo $document->content;
+        }, $filename, [
+            'Content-Type' => 'text/markdown',
+        ]);
     }
 
     public function render()

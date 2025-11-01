@@ -20,7 +20,7 @@ class DocumentFactory extends Factory
         return [
             'conversation_id' => Conversation::factory(),
             'name' => $this->faker->word,
-            'content' => $this->faker->sentence,
+            'content' => $this->faker->paragraphs(nb: rand(3, 30), asText: true),
         ];
     }
 }

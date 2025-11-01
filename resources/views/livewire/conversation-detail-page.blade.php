@@ -102,32 +102,48 @@
         <flux:card>
             <flux:heading size="lg" class="mb-4">Documents</flux:heading>
             @if($conversation->documents->count() > 0)
-                <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     @foreach($conversation->documents as $document)
-                        @php
-                            $isExpanded = in_array($document->id, $expandedDocuments);
-                        @endphp
-                        <div wire:key="document-{{ $document->id }}" class="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4">
-                            <div class="flex items-start justify-between mb-2">
+                        <flux:modal.trigger :name="'document-' . $document->id">
+                            <flux:card class="cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-500 transition">
                                 <div>
-                                    <flux:heading size="md">{{ $document->name }}</flux:heading>
-                                    <flux:text class="text-sm">Created {{ $document->created_at->format('M j, Y g:i A') }}</flux:text>
+                                    <flux:heading size="md" class="mb-2">{{ $document->name }}</flux:heading>
+                                    <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
+                                        Created {{ $document->created_at->format('M j, Y g:i A') }}
+                                    </flux:text>
+                                    <div class="mt-4">
+                                        <flux:badge color="zinc" icon="document-text">
+                                            {{ number_format(strlen($document->content)) }} chars
+                                        </flux:badge>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="mt-4 bg-zinc-50 dark:bg-zinc-900 rounded p-4 overflow-x-auto {{ $isExpanded ? '' : 'max-h-96 overflow-y-hidden relative' }}">
-                                <pre class="text-sm whitespace-pre-wrap">{{ $document->content }}</pre>
-                                @if(!$isExpanded)
-                                    <div class="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-zinc-50 dark:from-zinc-900 to-transparent"></div>
-                                @endif
-                            </div>
-                            <div class="mt-2">
-                                <flux:button wire:click="toggleDocument({{ $document->id }})" variant="ghost" size="sm" icon="{{ $isExpanded ? 'chevron-up' : 'chevron-down' }}">
-                                    {{ $isExpanded ? 'Show less' : 'Show full document' }}
-                                </flux:button>
-                            </div>
-                        </div>
+                            </flux:card>
+                        </flux:modal.trigger>
                     @endforeach
                 </div>
+
+                {{-- Modals placed outside grid --}}
+                @foreach($conversation->documents as $document)
+                    <flux:modal :name="'document-' . $document->id" class="w-full max-w-4xl">
+                        <div class="space-y-4">
+                            <div class="flex items-start gap-3">
+                                <flux:button wire:click="downloadDocument({{ $document->id }})" icon="arrow-down-tray" size="sm" square tooltip="Download markdown file" />
+                                <div>
+                                    <flux:heading size="lg">{{ $document->name }}</flux:heading>
+                                    <flux:text class="mt-1 text-sm">
+                                        Created {{ $document->created_at->format('M j, Y g:i A') }}
+                                    </flux:text>
+                                </div>
+                            </div>
+
+                            <flux:separator />
+
+                            <div class="bg-zinc-50 dark:bg-zinc-900 rounded-lg p-6 max-h-[70vh] overflow-y-auto">
+                                <pre class="text-sm whitespace-pre-wrap">{{ $document->content }}</pre>
+                            </div>
+                        </div>
+                    </flux:modal>
+                @endforeach
             @else
                 <flux:text>No documents generated yet</flux:text>
             @endif
