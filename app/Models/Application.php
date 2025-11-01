@@ -9,4 +9,21 @@ class Application extends Model
 {
     /** @use HasFactory<\Database\Factories\ApplicationFactory> */
     use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'short_description',
+        'overview',
+        'is_automated',
+        'status',
+        'url',
+        'repo',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_automated' => 'boolean',
+        ];
+    }
 }
