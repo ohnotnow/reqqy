@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\ApplicationCategory;
 use App\ConversationStatus;
+use App\Jobs\CreateGitHubIssueJob;
 use App\Models\Application;
 use App\Models\Conversation;
 use App\Models\User;
@@ -22,20 +23,22 @@ class ConversationObserver
      */
     public function updated(Conversation $conversation): void
     {
-        if (!$this->shouldCreateProposedApplication($conversation)) {
-            return;
+        if ($this->shouldCreateProposedApplication($conversation)) {
+            $application = Application::create([
+                'category' => ApplicationCategory::Proposed,
+                'source_conversation_id' => $conversation->id,
+                'name' => $this->extractApplicationName($conversation),
+            ]);
+
+            $conversation->application_id = $application->id;
+            $conversation->saveQuietly();
+
+            $this->notifyAdmins($application);
         }
 
-        $application = Application::create([
-            'category' => ApplicationCategory::Proposed,
-            'source_conversation_id' => $conversation->id,
-            'name' => $this->extractApplicationName($conversation),
-        ]);
-
-        $conversation->application_id = $application->id;
-        $conversation->saveQuietly();
-
-        $this->notifyAdmins($application);
+        if ($this->shouldCreateGitHubIssue($conversation)) {
+            CreateGitHubIssueJob::dispatch($conversation);
+        }
     }
 
     private function shouldCreateProposedApplication(Conversation $conversation): bool
@@ -49,6 +52,27 @@ class ConversationObserver
         }
 
         if ($conversation->application_id !== null) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function shouldCreateGitHubIssue(Conversation $conversation): bool
+    {
+        if (!$conversation->wasChanged('status')) {
+            return false;
+        }
+
+        if ($conversation->status !== ConversationStatus::Approved) {
+            return false;
+        }
+
+        if ($conversation->application_id === null) {
+            return false;
+        }
+
+        if (empty($conversation->application->repo)) {
             return false;
         }
 

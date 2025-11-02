@@ -584,6 +584,35 @@ Remember: You have the laravel boost MCP tool which was written by the creators 
   - Polling kept as safety net (simple-but-wasteful philosophy!)
 - 📝 Next: Phase 4 - Settings UI Refactor (separate tabs for three application categories)
 
+### 2025-11-02 - GitHub Issue Creation Stub
+- ✅ **Stubbed out future GitHub integration for approved feature requests**
+- ✅ Created `CreateGitHubIssueJob` (app/Jobs/CreateGitHubIssueJob.php)
+  - Accepts `Conversation` model in constructor
+  - Logs message with conversation ID, application name, repo, and GitHub token status
+  - Ready for future GitHub API implementation
+  - Uses correct config key: `config('reqqy.api_keys.github')`
+- ✅ Updated `ConversationObserver` to dispatch job when appropriate
+  - New `shouldCreateGitHubIssue()` helper method checks:
+    - Status changed to `Approved`
+    - Conversation has `application_id` (feature request, not new application)
+    - Application has `repo` value
+  - Dispatches `CreateGitHubIssueJob` when all conditions met
+- ✅ Comprehensive test coverage (5 new tests, all passing)
+  - Tests job dispatch when feature request approved with repo
+  - Tests job not dispatched for new application conversations
+  - Tests job not dispatched when application has no repo
+  - Tests job not dispatched for other status changes
+  - Tests job not dispatched when status unchanged
+  - All 14 ConversationObserver tests passing with 19 assertions
+- ✅ All code formatted with Laravel Pint
+- 💡 **Design Benefits:**
+  - Clean stub ready for future implementation
+  - All edge cases covered with tests
+  - No blocking on actual GitHub API work
+  - Easy to implement later: just replace Log::info() with GitHub API call
+  - Config structure already in place (`reqqy.api_keys.github`)
+- 📝 **Future Implementation:** When ready, add GitHub API client to create issues with "Feature" label using the GitHub token from config. Job already has all the context needed (conversation, application, repo).
+
 ## Next Steps - Phase 4: Settings UI Refactor for Application Categories
 
 ### Overview
@@ -675,6 +704,7 @@ The current Settings page lists all applications in a single flat view. With the
 
 ### Future Enhancements (Phase Two and Beyond)
 - Phase Two research agent integration (codebase analysis, web research)
+- GitHub issue creation for approved feature requests (job stubbed, ready for API integration)
 - Slack/Teams integration for notifications
 - In-app notification system (database notifications)
 - Bulk approve/reject for multiple Proposed applications

@@ -2,12 +2,14 @@
 
 use App\ApplicationCategory;
 use App\ConversationStatus;
+use App\Jobs\CreateGitHubIssueJob;
 use App\Models\Application;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
 use App\Notifications\NewProposedApplicationCreated;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Prism\Prism\Facades\Prism;
 use Prism\Prism\Testing\TextResponseFake;
 
@@ -190,4 +192,95 @@ test('it includes conversation link in notification', function () {
                 && $notification->application->source_conversation_id === $conversation->id;
         }
     );
+});
+
+test('it dispatches GitHub issue job when feature request is approved with repo', function () {
+    Queue::fake();
+
+    $application = Application::factory()->create([
+        'repo' => 'https://github.com/owner/repo',
+    ]);
+
+    $conversation = Conversation::factory()->create([
+        'status' => ConversationStatus::Pending,
+        'application_id' => $application->id,
+    ]);
+
+    $conversation->status = ConversationStatus::Approved;
+    $conversation->save();
+
+    Queue::assertPushed(CreateGitHubIssueJob::class, function ($job) use ($conversation) {
+        return $job->conversation->id === $conversation->id;
+    });
+});
+
+test('it does not dispatch GitHub issue job when new application conversation approved', function () {
+    Queue::fake();
+    Notification::fake();
+    Prism::fake([
+        TextResponseFake::make()->withText('New App'),
+    ]);
+
+    $conversation = Conversation::factory()->create([
+        'status' => ConversationStatus::Pending,
+        'application_id' => null,
+    ]);
+
+    $conversation->status = ConversationStatus::Approved;
+    $conversation->save();
+
+    Queue::assertNotPushed(CreateGitHubIssueJob::class);
+});
+
+test('it does not dispatch GitHub issue job when application has no repo', function () {
+    Queue::fake();
+
+    $application = Application::factory()->create([
+        'repo' => null,
+    ]);
+
+    $conversation = Conversation::factory()->create([
+        'status' => ConversationStatus::Pending,
+        'application_id' => $application->id,
+    ]);
+
+    $conversation->status = ConversationStatus::Approved;
+    $conversation->save();
+
+    Queue::assertNotPushed(CreateGitHubIssueJob::class);
+});
+
+test('it does not dispatch GitHub issue job when status changes to rejected', function () {
+    Queue::fake();
+
+    $application = Application::factory()->create([
+        'repo' => 'https://github.com/owner/repo',
+    ]);
+
+    $conversation = Conversation::factory()->create([
+        'status' => ConversationStatus::Pending,
+        'application_id' => $application->id,
+    ]);
+
+    $conversation->status = ConversationStatus::Rejected;
+    $conversation->save();
+
+    Queue::assertNotPushed(CreateGitHubIssueJob::class);
+});
+
+test('it does not dispatch GitHub issue job when status does not change', function () {
+    Queue::fake();
+
+    $application = Application::factory()->create([
+        'repo' => 'https://github.com/owner/repo',
+    ]);
+
+    $conversation = Conversation::factory()->create([
+        'status' => ConversationStatus::Approved,
+        'application_id' => $application->id,
+    ]);
+
+    $conversation->touch();
+
+    Queue::assertNotPushed(CreateGitHubIssueJob::class);
 });
