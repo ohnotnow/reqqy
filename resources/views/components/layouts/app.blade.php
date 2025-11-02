@@ -24,14 +24,12 @@
                 </flux:sidebar.header>
                 <flux:sidebar.nav>
                     <flux:sidebar.item icon="home" href="/" wire:navigate>Home</flux:sidebar.item>
-                    @admin
-                        <flux:sidebar.item icon="chat-bubble-left-right" href="{{ route('admin.conversations.index') }}" wire:navigate>Conversations</flux:sidebar.item>
-                    @endadmin
                 </flux:sidebar.nav>
                 <flux:sidebar.spacer />
                 <flux:sidebar.nav>
                     @admin
                     <flux:sidebar.item icon="cog-6-tooth" href="{{ route('applications') }}" wire:navigate>Applications</flux:sidebar.item>
+                    <flux:sidebar.item icon="chat-bubble-left-right" href="{{ route('admin.conversations.index') }}" wire:navigate>Conversations</flux:sidebar.item>
                     <flux:sidebar.item icon="cog-6-tooth" href="" wire:navigate>Settings</flux:sidebar.item>
                     @endadmin
                     <flux:sidebar.item icon="information-circle" href="#">Help</flux:sidebar.item>
