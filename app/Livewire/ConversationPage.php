@@ -125,7 +125,12 @@ class ConversationPage extends Component
         ]);
 
         if (! $this->conversation->application_id) {
+            // New application request
             ResearchAlternativesJob::dispatch($this->conversation);
+            \App\Jobs\GenerateNewApplicationPrdJob::dispatch($this->conversation);
+        } else {
+            // Feature request for existing application
+            \App\Jobs\GenerateFeatureRequestPrdJob::dispatch($this->conversation);
         }
 
         sleep(1);

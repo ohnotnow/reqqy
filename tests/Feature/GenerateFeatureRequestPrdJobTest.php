@@ -1,6 +1,7 @@
 <?php
 
-use App\Jobs\GenerateNewApplicationPrdJob;
+use App\Jobs\GenerateFeatureRequestPrdJob;
+use App\Models\Application;
 use App\Models\Conversation;
 use App\Models\Document;
 use App\Models\Message;
@@ -18,20 +19,22 @@ beforeEach(function () {
     ]);
 });
 
-it('generates a PRD document from conversation messages', function () {
+it('generates a feature request document from conversation messages', function () {
     // Arrange
     Notification::fake();
 
     $user = User::factory()->create();
     $adminUser = User::factory()->create(['is_admin' => true]);
+    $application = Application::factory()->create(['name' => 'My App']);
     $conversation = Conversation::factory()
         ->for($user)
-        ->create(['application_id' => null]);
+        ->for($application)
+        ->create();
 
     Message::factory()->create([
         'conversation_id' => $conversation->id,
         'user_id' => $user->id,
-        'content' => 'I need a task management app',
+        'content' => 'I need a dark mode feature',
     ]);
 
     Message::factory()->create([
@@ -43,11 +46,11 @@ it('generates a PRD document from conversation messages', function () {
     Message::factory()->create([
         'conversation_id' => $conversation->id,
         'user_id' => $user->id,
-        'content' => 'It should have user authentication, task creation, and deadline tracking',
+        'content' => 'Users should be able to toggle between light and dark themes',
     ]);
 
     // Act
-    $job = new GenerateNewApplicationPrdJob($conversation);
+    $job = new GenerateFeatureRequestPrdJob($conversation);
     $job->handle(app(\App\Services\LlmService::class));
 
     // Assert
@@ -55,11 +58,12 @@ it('generates a PRD document from conversation messages', function () {
 
     assertDatabaseHas('documents', [
         'conversation_id' => $conversation->id,
-        'name' => 'Product Requirements Document',
+        'name' => 'Feature Request Document',
     ]);
 
     $document = Document::first();
-    expect($document->content)->toContain('Product Requirements Document');
+    expect($document->content)->toContain('Feature Request Document');
+    expect($document->content)->toContain('My App');
     expect($document->content)->toContain('LLM generation pending - this is a stub document');
     expect($document->conversation_id)->toBe($conversation->id);
 
@@ -68,67 +72,28 @@ it('generates a PRD document from conversation messages', function () {
     Notification::assertNotSentTo($user, NewDocumentCreated::class);
 });
 
-it('uses all conversation messages in chronological order', function () {
+it('creates a feature request document even if no messages exist', function () {
     // Arrange
     $user = User::factory()->create();
+    $application = Application::factory()->create(['name' => 'Test App']);
     $conversation = Conversation::factory()
         ->for($user)
-        ->create(['application_id' => null]);
-
-    // Create messages out of order to test ordering
-    Message::factory()->create([
-        'conversation_id' => $conversation->id,
-        'user_id' => $user->id,
-        'content' => 'Third message',
-        'created_at' => now()->addMinutes(2),
-    ]);
-
-    Message::factory()->create([
-        'conversation_id' => $conversation->id,
-        'user_id' => $user->id,
-        'content' => 'First message',
-        'created_at' => now(),
-    ]);
-
-    Message::factory()->create([
-        'conversation_id' => $conversation->id,
-        'user_id' => null,
-        'content' => 'Second message',
-        'created_at' => now()->addMinutes(1),
-    ]);
+        ->for($application)
+        ->create();
 
     // Act
-    $job = new GenerateNewApplicationPrdJob($conversation);
-    $job->handle(app(\App\Services\LlmService::class));
-
-    // Assert - document was created
-    expect(Document::count())->toBe(1);
-
-    // Verify the job completed successfully with stub content
-    $document = Document::first();
-    expect($document->content)->toContain('Product Requirements Document');
-    expect($document->content)->toContain('LLM generation pending - this is a stub document');
-});
-
-it('creates a document even if no messages exist', function () {
-    // Arrange
-    $user = User::factory()->create();
-    $conversation = Conversation::factory()
-        ->for($user)
-        ->create(['application_id' => null]);
-
-    // Act
-    $job = new GenerateNewApplicationPrdJob($conversation);
+    $job = new GenerateFeatureRequestPrdJob($conversation);
     $job->handle(app(\App\Services\LlmService::class));
 
     // Assert - document is still created with stub content
     assertDatabaseCount('documents', 1);
     $document = Document::first();
-    expect($document->content)->toContain('Product Requirements Document');
+    expect($document->content)->toContain('Feature Request Document');
+    expect($document->content)->toContain('Test App');
     expect($document->content)->toContain('LLM generation pending - this is a stub document');
 });
 
-it('notifies all admin users when a document is created', function () {
+it('notifies all admin users when a feature request document is created', function () {
     // Arrange
     Notification::fake();
 
@@ -136,18 +101,20 @@ it('notifies all admin users when a document is created', function () {
     $adminUser1 = User::factory()->create(['is_admin' => true]);
     $adminUser2 = User::factory()->create(['is_admin' => true]);
 
+    $application = Application::factory()->create();
     $conversation = Conversation::factory()
         ->for($regularUser)
-        ->create(['application_id' => null]);
+        ->for($application)
+        ->create();
 
     Message::factory()->create([
         'conversation_id' => $conversation->id,
         'user_id' => $regularUser->id,
-        'content' => 'I need an app',
+        'content' => 'I need a new feature',
     ]);
 
     // Act
-    $job = new GenerateNewApplicationPrdJob($conversation);
+    $job = new GenerateFeatureRequestPrdJob($conversation);
     $job->handle(app(\App\Services\LlmService::class));
 
     // Assert - all admin users are notified
@@ -159,33 +126,36 @@ it('notifies all admin users when a document is created', function () {
     Notification::assertCount(2);
 });
 
-it('includes conversation link in notification', function () {
+it('includes application name in feature request document', function () {
     // Arrange
-    Notification::fake();
-
-    $adminUser = User::factory()->create(['is_admin' => true]);
+    $user = User::factory()->create();
+    $application = Application::factory()->create(['name' => 'Awesome Application']);
     $conversation = Conversation::factory()
-        ->for($adminUser)
-        ->create(['application_id' => null]);
-
-    Message::factory()->create([
-        'conversation_id' => $conversation->id,
-        'user_id' => $adminUser->id,
-        'content' => 'Test message',
-    ]);
+        ->for($user)
+        ->for($application)
+        ->create();
 
     // Act
-    $job = new GenerateNewApplicationPrdJob($conversation);
+    $job = new GenerateFeatureRequestPrdJob($conversation);
     $job->handle(app(\App\Services\LlmService::class));
 
-    // Assert - notification includes document with conversation relationship
-    Notification::assertSentTo(
-        $adminUser,
-        NewDocumentCreated::class,
-        function ($notification) use ($conversation) {
-            $document = $notification->document;
+    // Assert
+    $document = Document::first();
+    expect($document->content)->toContain('Awesome Application');
+});
 
-            return $document->conversation_id === $conversation->id;
-        }
-    );
+it('handles conversations without an application', function () {
+    // Arrange
+    $user = User::factory()->create();
+    $conversation = Conversation::factory()
+        ->for($user)
+        ->create(['application_id' => null]);
+
+    // Act
+    $job = new GenerateFeatureRequestPrdJob($conversation);
+    $job->handle(app(\App\Services\LlmService::class));
+
+    // Assert - document is still created with fallback application name
+    $document = Document::first();
+    expect($document->content)->toContain('Unknown Application');
 });

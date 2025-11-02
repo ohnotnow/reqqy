@@ -8,7 +8,7 @@ use App\Services\LlmService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
-class GenerateNewApplicationPrdJob implements ShouldQueue
+class GenerateFeatureRequestPrdJob implements ShouldQueue
 {
     use Queueable;
 
@@ -23,7 +23,7 @@ class GenerateNewApplicationPrdJob implements ShouldQueue
         //     ->orderBy('created_at')
         //     ->get();
         //
-        // $systemPrompt = view('prompts.new-application-prd')->render();
+        // $systemPrompt = view('prompts.feature-request-prd')->render();
         //
         // $content = $llmService->generateResponse(
         //     conversation: $this->conversation,
@@ -31,37 +31,48 @@ class GenerateNewApplicationPrdJob implements ShouldQueue
         //     systemPrompt: $systemPrompt
         // );
 
-        $stubContent = <<<'MARKDOWN'
-# Product Requirements Document
+        $applicationName = $this->conversation->application?->name ?? 'Unknown Application';
 
-## Executive Summary
-This is a stub PRD that will be replaced with an LLM-generated document once the workflow is verified.
+        $stubContent = <<<MARKDOWN
+# Feature Request Document
 
-## Goals and Objectives
-- Goal 1
-- Goal 2
+## Application
+{$applicationName}
 
-## User Personas
-- User persona 1
-- User persona 2
+## Feature Summary
+This is a stub feature request document that will be replaced with an LLM-generated document once the workflow is verified.
 
-## Functional Requirements
-- Requirement 1
-- Requirement 2
+## Problem Statement
+What problem does this feature solve?
 
-## Non-Functional Requirements
-- Performance requirements
-- Security requirements
+## Proposed Solution
+How should this feature work?
 
 ## User Stories
 - As a user, I want...
+- So that I can...
+
+## Acceptance Criteria
+- Criteria 1
+- Criteria 2
+- Criteria 3
 
 ## Technical Considerations
-- Technology stack
-- Integration points
+- Integration points with existing features
+- Database changes required
+- API changes required
+
+## UI/UX Requirements
+- Mockups/wireframes needed
+- User flow description
+
+## Testing Requirements
+- Unit tests
+- Feature tests
+- Manual testing steps
 
 ## Out of Scope
-- Future enhancements
+- What this feature will NOT include
 
 ## Open Questions
 - Question 1
@@ -72,7 +83,7 @@ MARKDOWN;
 
         Document::create([
             'conversation_id' => $this->conversation->id,
-            'name' => 'Product Requirements Document',
+            'name' => 'Feature Request Document',
             'content' => $stubContent,
         ]);
     }

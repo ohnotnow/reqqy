@@ -1,5 +1,7 @@
 <?php
 
+use App\Jobs\GenerateFeatureRequestPrdJob;
+use App\Jobs\GenerateNewApplicationPrdJob;
 use App\Jobs\ResearchAlternativesJob;
 use App\Livewire\ConversationPage;
 use App\Models\Application;
@@ -308,4 +310,74 @@ it('does not dispatch research alternatives job when signing off a feature reque
         ->call('signOff');
 
     Queue::assertNotPushed(ResearchAlternativesJob::class);
+});
+
+it('dispatches generate new application prd job when signing off a new application conversation', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $conversation = Conversation::factory()->create([
+        'user_id' => $user->id,
+        'application_id' => null,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(ConversationPage::class, ['conversation_id' => $conversation->id])
+        ->call('signOff');
+
+    Queue::assertPushed(GenerateNewApplicationPrdJob::class, function ($job) use ($conversation) {
+        return $job->conversation->id === $conversation->id;
+    });
+});
+
+it('dispatches generate feature request prd job when signing off a feature request conversation', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $application = Application::factory()->create();
+    $conversation = Conversation::factory()->create([
+        'user_id' => $user->id,
+        'application_id' => $application->id,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(ConversationPage::class, ['conversation_id' => $conversation->id])
+        ->call('signOff');
+
+    Queue::assertPushed(GenerateFeatureRequestPrdJob::class, function ($job) use ($conversation) {
+        return $job->conversation->id === $conversation->id;
+    });
+});
+
+it('does not dispatch generate feature request prd job when signing off a new application conversation', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $conversation = Conversation::factory()->create([
+        'user_id' => $user->id,
+        'application_id' => null,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(ConversationPage::class, ['conversation_id' => $conversation->id])
+        ->call('signOff');
+
+    Queue::assertNotPushed(GenerateFeatureRequestPrdJob::class);
+});
+
+it('does not dispatch generate new application prd job when signing off a feature request conversation', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $application = Application::factory()->create();
+    $conversation = Conversation::factory()->create([
+        'user_id' => $user->id,
+        'application_id' => $application->id,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(ConversationPage::class, ['conversation_id' => $conversation->id])
+        ->call('signOff');
+
+    Queue::assertNotPushed(GenerateNewApplicationPrdJob::class);
 });
