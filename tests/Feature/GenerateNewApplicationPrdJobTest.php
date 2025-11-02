@@ -14,6 +14,13 @@ use Prism\Prism\ValueObjects\Usage;
 use function Pest\Laravel\assertDatabaseCount;
 use function Pest\Laravel\assertDatabaseHas;
 
+beforeEach(function () {
+    config([
+        'reqqy.llm.default' => 'anthropic/claude-3-5-sonnet-20241022',
+        'reqqy.llm.small' => 'anthropic/claude-3-haiku-20240307',
+    ]);
+});
+
 it('generates a PRD document from conversation messages', function () {
     // Arrange
     Notification::fake();
@@ -50,7 +57,7 @@ it('generates a PRD document from conversation messages', function () {
 
     // Act
     $job = new GenerateNewApplicationPrdJob($conversation);
-    $job->handle();
+    $job->handle(app(\App\Services\LlmService::class));
 
     // Assert
     assertDatabaseCount('documents', 1);
@@ -106,7 +113,7 @@ it('uses all conversation messages in chronological order', function () {
 
     // Act
     $job = new GenerateNewApplicationPrdJob($conversation);
-    $job->handle();
+    $job->handle(app(\App\Services\LlmService::class));
 
     // Assert - document was created
     expect(Document::count())->toBe(1);
@@ -132,7 +139,7 @@ it('does not create a document if no messages exist', function () {
 
     // Act
     $job = new GenerateNewApplicationPrdJob($conversation);
-    $job->handle();
+    $job->handle(app(\App\Services\LlmService::class));
 
     // Assert - document is still created, but with empty message context
     assertDatabaseCount('documents', 1);
@@ -166,7 +173,7 @@ it('notifies all admin users when a document is created', function () {
 
     // Act
     $job = new GenerateNewApplicationPrdJob($conversation);
-    $job->handle();
+    $job->handle(app(\App\Services\LlmService::class));
 
     // Assert - all admin users are notified
     Notification::assertSentTo($adminUser1, NewDocumentCreated::class);
@@ -200,7 +207,7 @@ it('includes conversation link in notification', function () {
 
     // Act
     $job = new GenerateNewApplicationPrdJob($conversation);
-    $job->handle();
+    $job->handle(app(\App\Services\LlmService::class));
 
     // Assert - notification includes document with conversation relationship
     Notification::assertSentTo(

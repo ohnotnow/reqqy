@@ -4,10 +4,9 @@ namespace App\Jobs;
 
 use App\Models\Conversation;
 use App\Models\Document;
+use App\Services\LlmService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Prism\Prism\Enums\Provider;
-use Prism\Prism\Facades\Prism;
 
 class GenerateNewApplicationPrdJob implements ShouldQueue
 {
@@ -17,26 +16,24 @@ class GenerateNewApplicationPrdJob implements ShouldQueue
         public Conversation $conversation
     ) {}
 
-    public function handle(): void
+    public function handle(LlmService $llmService): void
     {
         $messages = $this->conversation->messages()
             ->orderBy('created_at')
             ->get();
 
-        $prompt = view('prompts.new-application-prd', [
-            'messages' => $messages,
-        ])->render();
+        $systemPrompt = view('prompts.new-application-prd')->render();
 
-        $response = Prism::text()
-            ->using(Provider::Anthropic, 'claude-3-5-sonnet-20241022')
-            ->withPrompt($prompt)
-            ->withMaxTokens(4096)
-            ->asText();
+        $content = $llmService->generateResponse(
+            conversation: $this->conversation,
+            messages: $messages,
+            systemPrompt: $systemPrompt
+        );
 
         Document::create([
             'conversation_id' => $this->conversation->id,
             'name' => 'Product Requirements Document',
-            'content' => $response->text,
+            'content' => $content,
         ]);
     }
 }

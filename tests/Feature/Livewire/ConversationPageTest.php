@@ -1,10 +1,12 @@
 <?php
 
+use App\Jobs\ResearchAlternativesJob;
 use App\Livewire\ConversationPage;
 use App\Models\Application;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
+use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 use Prism\Prism\Facades\Prism;
 use Prism\Prism\Testing\TextResponseFake;
@@ -271,4 +273,39 @@ it('passes conversation history to llm when generating response', function () {
         expect($messages[1]->content)->toBe('First LLM response');
         expect($messages[2]->content)->toBe('Second user message');
     });
+});
+
+it('dispatches research alternatives job when signing off a new application conversation', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $conversation = Conversation::factory()->create([
+        'user_id' => $user->id,
+        'application_id' => null,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(ConversationPage::class, ['conversation_id' => $conversation->id])
+        ->call('signOff');
+
+    Queue::assertPushed(ResearchAlternativesJob::class, function ($job) use ($conversation) {
+        return $job->conversation->id === $conversation->id;
+    });
+});
+
+it('does not dispatch research alternatives job when signing off a feature request conversation', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $application = Application::factory()->create();
+    $conversation = Conversation::factory()->create([
+        'user_id' => $user->id,
+        'application_id' => $application->id,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(ConversationPage::class, ['conversation_id' => $conversation->id])
+        ->call('signOff');
+
+    Queue::assertNotPushed(ResearchAlternativesJob::class);
 });

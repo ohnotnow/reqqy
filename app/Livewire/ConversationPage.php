@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Jobs\ResearchAlternativesJob;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Services\LlmService;
@@ -122,6 +123,10 @@ class ConversationPage extends Component
         $this->conversation->update([
             'signed_off_at' => now(),
         ]);
+
+        if (! $this->conversation->application_id) {
+            ResearchAlternativesJob::dispatch($this->conversation);
+        }
 
         sleep(1);
 
