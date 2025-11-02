@@ -1,8 +1,8 @@
-<div class="max-w-6xl mx-auto py-12 px-4">
+<div>
     <div class="flex items-center justify-between mb-8">
         <div>
-            <flux:heading size="xl">Settings</flux:heading>
-            <flux:text class="mt-2">Manage your Laravel applications</flux:text>
+            <flux:heading size="xl">Applications</flux:heading>
+            <flux:text class="mt-2">Manage your applications</flux:text>
         </div>
     </div>
 
@@ -201,7 +201,7 @@
                                     </div>
                                     <div class="flex gap-2">
                                         <flux:modal.trigger name="promote-application-{{ $application->id }}">
-                                            <flux:button wire:click="promoteApplication({{ $application->id }})" size="sm" icon="arrow-up" variant="primary" square iconOnly />
+                                            <flux:button wire:click="promoteApplication({{ $application->id }})" size="sm" icon="arrow-up" variant="filled" square iconOnly />
                                         </flux:modal.trigger>
                                         <flux:modal.trigger name="edit-application-{{ $application->id }}">
                                             <flux:button wire:click="editApplication({{ $application->id }})" size="sm" icon="pencil" square iconOnly />

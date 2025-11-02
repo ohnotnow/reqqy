@@ -1,7 +1,7 @@
 <?php
 
 use App\ApplicationCategory;
-use App\Livewire\SettingsPage;
+use App\Livewire\ApplicationsPage;
 use App\Models\Application;
 use App\Models\User;
 use Illuminate\Support\Facades\Queue;
@@ -14,7 +14,7 @@ it('renders successfully', function () {
 
     actingAs($user);
 
-    Livewire::test(SettingsPage::class)
+    Livewire::test(ApplicationsPage::class)
         ->assertStatus(200);
 });
 
@@ -27,7 +27,7 @@ it('displays all applications', function () {
 
     actingAs($user);
 
-    Livewire::test(SettingsPage::class)
+    Livewire::test(ApplicationsPage::class)
         ->assertSee('App One')
         ->assertSee('App Two')
         ->assertSee('App Three');
@@ -40,7 +40,7 @@ it('shows empty state when no applications exist', function () {
 
     actingAs($user);
 
-    Livewire::test(SettingsPage::class)
+    Livewire::test(ApplicationsPage::class)
         ->assertSee('No applications in this category')
         ->assertSee('Get started by adding a new application');
 });
@@ -54,7 +54,7 @@ it('can create a new internal application', function () {
 
     actingAs($user);
 
-    Livewire::test(SettingsPage::class)
+    Livewire::test(ApplicationsPage::class)
         ->set('formCategory', 'internal')
         ->set('name', 'My New App')
         ->set('short_description', 'A short description')
@@ -84,7 +84,7 @@ it('resets form after creating application', function () {
 
     actingAs($user);
 
-    Livewire::test(SettingsPage::class)
+    Livewire::test(ApplicationsPage::class)
         ->set('formCategory', 'internal')
         ->set('name', 'My New App')
         ->set('short_description', 'A description')
@@ -102,7 +102,7 @@ it('validates required fields when creating internal application', function () {
 
     actingAs($user);
 
-    Livewire::test(SettingsPage::class)
+    Livewire::test(ApplicationsPage::class)
         ->set('formCategory', 'internal')
         ->set('name', '')
         ->set('status', '')
@@ -117,7 +117,7 @@ it('allows nullable fields when creating internal application', function () {
 
     actingAs($user);
 
-    Livewire::test(SettingsPage::class)
+    Livewire::test(ApplicationsPage::class)
         ->set('formCategory', 'internal')
         ->set('name', 'Minimal App')
         ->set('status', 'Development')
@@ -154,7 +154,7 @@ it('can load application data for editing', function () {
 
     actingAs($user);
 
-    Livewire::test(SettingsPage::class)
+    Livewire::test(ApplicationsPage::class)
         ->call('editApplication', $application->id)
         ->assertSet('editingApplicationId', $application->id)
         ->assertSet('formCategory', 'internal')
@@ -177,7 +177,7 @@ it('can update an existing application', function () {
 
     actingAs($user);
 
-    Livewire::test(SettingsPage::class)
+    Livewire::test(ApplicationsPage::class)
         ->call('editApplication', $application->id)
         ->set('name', 'Updated Name')
         ->set('status', 'Production')
@@ -199,7 +199,7 @@ it('resets form after updating application', function () {
 
     actingAs($user);
 
-    Livewire::test(SettingsPage::class)
+    Livewire::test(ApplicationsPage::class)
         ->call('editApplication', $application->id)
         ->set('name', 'Updated Name')
         ->set('status', 'Active')
@@ -220,7 +220,7 @@ it('validates required fields when updating internal application', function () {
 
     actingAs($user);
 
-    Livewire::test(SettingsPage::class)
+    Livewire::test(ApplicationsPage::class)
         ->call('editApplication', $application->id)
         ->set('name', '')
         ->set('status', '')
@@ -241,7 +241,7 @@ it('can delete an application', function () {
 
     actingAs($user);
 
-    Livewire::test(SettingsPage::class)
+    Livewire::test(ApplicationsPage::class)
         ->call('deleteApplication', $application->id)
         ->assertHasNoErrors();
 
@@ -260,7 +260,7 @@ it('does not delete other applications when deleting one', function () {
 
     actingAs($user);
 
-    Livewire::test(SettingsPage::class)
+    Livewire::test(ApplicationsPage::class)
         ->call('deleteApplication', $application2->id);
 
     expect(Application::count())->toBe(2);
@@ -274,7 +274,7 @@ it('throws exception when trying to edit non-existent application', function () 
 
     actingAs($user);
 
-    Livewire::test(SettingsPage::class)
+    Livewire::test(ApplicationsPage::class)
         ->call('editApplication', 999);
 })->throws(Illuminate\Database\Eloquent\ModelNotFoundException::class);
 
@@ -283,7 +283,7 @@ it('throws exception when trying to update non-existent application', function (
 
     actingAs($user);
 
-    Livewire::test(SettingsPage::class)
+    Livewire::test(ApplicationsPage::class)
         ->set('editingApplicationId', 999)
         ->set('name', 'Test')
         ->set('status', 'Active')
@@ -295,7 +295,7 @@ it('throws exception when trying to delete non-existent application', function (
 
     actingAs($user);
 
-    Livewire::test(SettingsPage::class)
+    Livewire::test(ApplicationsPage::class)
         ->call('deleteApplication', 999);
 })->throws(Illuminate\Database\Eloquent\ModelNotFoundException::class);
 
@@ -314,7 +314,7 @@ it('displays application with all fields populated', function () {
 
     actingAs($user);
 
-    Livewire::test(SettingsPage::class)
+    Livewire::test(ApplicationsPage::class)
         ->assertSee('Full App')
         ->assertSee('Short desc')
         ->assertSee('Production')
@@ -338,7 +338,7 @@ it('displays application with minimal fields', function () {
 
     actingAs($user);
 
-    Livewire::test(SettingsPage::class)
+    Livewire::test(ApplicationsPage::class)
         ->assertSee('Minimal App')
         ->assertSee('Development');
 

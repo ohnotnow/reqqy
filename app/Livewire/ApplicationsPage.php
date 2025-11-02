@@ -7,7 +7,7 @@ use App\Models\Application;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
-class SettingsPage extends Component
+class ApplicationsPage extends Component
 {
     #[Url]
     public string $activeTab = 'internal';
@@ -168,7 +168,7 @@ class SettingsPage extends Component
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('livewire.settings-page', [
+        return view('livewire.applications-page', [
             'internalApplications' => $internalApplications,
             'externalApplications' => $externalApplications,
             'proposedApplications' => $proposedApplications,

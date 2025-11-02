@@ -31,7 +31,8 @@
                 <flux:sidebar.spacer />
                 <flux:sidebar.nav>
                     @admin
-                        <flux:sidebar.item icon="cog-6-tooth" href="{{ route('settings') }}" wire:navigate>Settings</flux:sidebar.item>
+                    <flux:sidebar.item icon="cog-6-tooth" href="{{ route('applications') }}" wire:navigate>Applications</flux:sidebar.item>
+                    <flux:sidebar.item icon="cog-6-tooth" href="" wire:navigate>Settings</flux:sidebar.item>
                     @endadmin
                     <flux:sidebar.item icon="information-circle" href="#">Help</flux:sidebar.item>
                 </flux:sidebar.nav>
