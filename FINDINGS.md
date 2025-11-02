@@ -58,3 +58,10 @@
 2. [ ] Implement the planned research agent inside `ResearchAlternativesJob`, preserving a toggleable stub so we can iterate safely.
 3. [ ] Finish `CreateGitHubIssueJob` with authenticated GitHub calls (or a service abstraction) to mirror the README workflow.
 4. [ ] Update the README to reflect the full status lifecycle (including the implemented `Rejected` state) or adjust the code if that status is truly out of scope.
+
+### Notable Gaps & Risks
+- Sign-off never advances the status from `pending`, so conversations linger until admins intervene manually.
+- New-application conversations flip to “feature request” UI after an approval because the observer backfills `application_id`.
+- Admin status updates accept arbitrary strings; invalid values crash when `ConversationStatus::from()` runs.
+- `ConversationsAdminPage` loads every message/document for every conversation, which will buckle under real data volumes.
+- Jobs still pause with `sleep(1)` and PRD/GitHub/Research jobs remain stubbed, despite the README advertising full automation.
