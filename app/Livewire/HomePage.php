@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\ApplicationCategory;
 use App\Models\Application;
 use Livewire\Component;
 
@@ -26,7 +27,9 @@ class HomePage extends Component
     public function render()
     {
         return view('livewire.home-page', [
-            'applications' => Application::orderBy('name')->get(),
+            'applications' => Application::where('category', ApplicationCategory::Internal)
+                ->orderBy('name')
+                ->get(),
             'conversations' => auth()->user()->conversations()->latest()->get(),
         ]);
     }

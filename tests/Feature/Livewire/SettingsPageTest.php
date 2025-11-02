@@ -1,5 +1,6 @@
 <?php
 
+use App\ApplicationCategory;
 use App\Livewire\SettingsPage;
 use App\Models\Application;
 use App\Models\User;
@@ -20,9 +21,9 @@ it('renders successfully', function () {
 it('displays all applications', function () {
     $user = User::factory()->create();
 
-    $application1 = Application::factory()->create(['name' => 'App One']);
-    $application2 = Application::factory()->create(['name' => 'App Two']);
-    $application3 = Application::factory()->create(['name' => 'App Three']);
+    $application1 = Application::factory()->internal()->create(['name' => 'App One']);
+    $application2 = Application::factory()->external()->create(['name' => 'App Two']);
+    $application3 = Application::factory()->proposed()->create(['name' => 'App Three']);
 
     actingAs($user);
 
@@ -40,11 +41,11 @@ it('shows empty state when no applications exist', function () {
     actingAs($user);
 
     Livewire::test(SettingsPage::class)
-        ->assertSee('No applications yet')
-        ->assertSee('Get started by adding your first Laravel application');
+        ->assertSee('No applications in this category')
+        ->assertSee('Get started by adding a new application');
 });
 
-it('can create a new application', function () {
+it('can create a new internal application', function () {
     Queue::fake();
 
     $user = User::factory()->create();
@@ -54,6 +55,7 @@ it('can create a new application', function () {
     actingAs($user);
 
     Livewire::test(SettingsPage::class)
+        ->set('formCategory', 'internal')
         ->set('name', 'My New App')
         ->set('short_description', 'A short description')
         ->set('overview', 'A detailed overview')
@@ -68,6 +70,7 @@ it('can create a new application', function () {
 
     $application = Application::first();
     expect($application->name)->toBe('My New App');
+    expect($application->category)->toBe(ApplicationCategory::Internal);
     expect($application->short_description)->toBe('A short description');
     expect($application->overview)->toBe('A detailed overview');
     expect($application->is_automated)->toBeTrue();
@@ -82,6 +85,7 @@ it('resets form after creating application', function () {
     actingAs($user);
 
     Livewire::test(SettingsPage::class)
+        ->set('formCategory', 'internal')
         ->set('name', 'My New App')
         ->set('short_description', 'A description')
         ->set('status', 'Active')
@@ -89,15 +93,17 @@ it('resets form after creating application', function () {
         ->assertSet('name', '')
         ->assertSet('short_description', '')
         ->assertSet('status', '')
+        ->assertSet('formCategory', '')
         ->assertSet('editingApplicationId', null);
 });
 
-it('validates required fields when creating application', function () {
+it('validates required fields when creating internal application', function () {
     $user = User::factory()->create();
 
     actingAs($user);
 
     Livewire::test(SettingsPage::class)
+        ->set('formCategory', 'internal')
         ->set('name', '')
         ->set('status', '')
         ->call('saveApplication')
@@ -106,12 +112,13 @@ it('validates required fields when creating application', function () {
     expect(Application::count())->toBe(0);
 });
 
-it('allows nullable fields when creating application', function () {
+it('allows nullable fields when creating internal application', function () {
     $user = User::factory()->create();
 
     actingAs($user);
 
     Livewire::test(SettingsPage::class)
+        ->set('formCategory', 'internal')
         ->set('name', 'Minimal App')
         ->set('status', 'Development')
         ->set('short_description', '')
@@ -135,7 +142,7 @@ it('can load application data for editing', function () {
 
     $user = User::factory()->create();
 
-    $application = Application::factory()->create([
+    $application = Application::factory()->internal()->create([
         'name' => 'Original App',
         'short_description' => 'Original description',
         'overview' => 'Original overview',
@@ -150,6 +157,7 @@ it('can load application data for editing', function () {
     Livewire::test(SettingsPage::class)
         ->call('editApplication', $application->id)
         ->assertSet('editingApplicationId', $application->id)
+        ->assertSet('formCategory', 'internal')
         ->assertSet('name', 'Original App')
         ->assertSet('short_description', 'Original description')
         ->assertSet('overview', 'Original overview')
@@ -162,7 +170,7 @@ it('can load application data for editing', function () {
 it('can update an existing application', function () {
     $user = User::factory()->create();
 
-    $application = Application::factory()->create([
+    $application = Application::factory()->internal()->create([
         'name' => 'Original Name',
         'status' => 'Development',
     ]);
@@ -187,7 +195,7 @@ it('can update an existing application', function () {
 it('resets form after updating application', function () {
     $user = User::factory()->create();
 
-    $application = Application::factory()->create();
+    $application = Application::factory()->internal()->create();
 
     actingAs($user);
 
@@ -197,14 +205,15 @@ it('resets form after updating application', function () {
         ->set('status', 'Active')
         ->call('updateApplication')
         ->assertSet('editingApplicationId', null)
+        ->assertSet('formCategory', '')
         ->assertSet('name', '')
         ->assertSet('status', '');
 });
 
-it('validates required fields when updating application', function () {
+it('validates required fields when updating internal application', function () {
     $user = User::factory()->create();
 
-    $application = Application::factory()->create([
+    $application = Application::factory()->internal()->create([
         'name' => 'Original Name',
         'status' => 'Active',
     ]);
