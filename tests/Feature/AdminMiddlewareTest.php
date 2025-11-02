@@ -6,7 +6,7 @@ test('admin users can access admin routes', function () {
     $admin = User::factory()->create(['is_admin' => true]);
 
     $this->actingAs($admin)
-        ->get('/settings')
+        ->get('/applications')
         ->assertSuccessful();
 });
 
@@ -14,12 +14,12 @@ test('non-admin users cannot access admin routes', function () {
     $user = User::factory()->create(['is_admin' => false]);
 
     $this->actingAs($user)
-        ->get('/settings')
+        ->get('/applications')
         ->assertForbidden();
 });
 
 test('guests cannot access admin routes', function () {
-    $this->get('/settings')
+    $this->get('/applications')
         ->assertRedirect(route('login'));
 });
 

@@ -21,7 +21,7 @@ class ConversationPolicy
      */
     public function view(User $user, Conversation $conversation): bool
     {
-        return $user->is_admin;
+        return $user->is_admin || $conversation->user_id === $user->id;
     }
 
     /**
@@ -37,7 +37,7 @@ class ConversationPolicy
      */
     public function update(User $user, Conversation $conversation): bool
     {
-        return $user->is_admin;
+        return $user->is_admin || $conversation->user_id === $user->id;
     }
 
     /**

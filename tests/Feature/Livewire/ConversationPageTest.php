@@ -82,7 +82,7 @@ it('prevents users from accessing other users conversations', function () {
 
     $this->actingAs($user)
         ->get(route('conversation', ['conversation_id' => $conversation->id]))
-        ->assertNotFound();
+        ->assertForbidden();
 });
 
 it('can send a message and receive llm response', function () {

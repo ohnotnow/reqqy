@@ -33,7 +33,8 @@ class ConversationPage extends Component
     public function mount(): void
     {
         if ($this->conversation_id) {
-            $this->conversation = auth()->user()->conversations()->findOrFail($this->conversation_id);
+            $this->conversation = Conversation::findOrFail($this->conversation_id);
+            $this->authorize('view', $this->conversation);
         } else {
             $this->conversation = Conversation::create([
                 'user_id' => auth()->id(),

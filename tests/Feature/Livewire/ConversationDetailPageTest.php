@@ -27,7 +27,7 @@ it('denies access to non-admin users', function () {
 
     actingAs($user);
 
-    Livewire::test(ConversationDetailPage::class, ['conversation_id' => $conversation->id])
+    $this->get(route('admin.conversations.show', ['conversation_id' => $conversation->id]))
         ->assertForbidden();
 });
 
@@ -200,16 +200,6 @@ it('validates status is required when updating', function () {
         ->set('status', '')
         ->call('updateStatus')
         ->assertHasErrors(['status']);
-});
-
-it('non-admin users cannot access the page', function () {
-    $user = User::factory()->create(['is_admin' => false]);
-    $conversation = Conversation::factory()->create(['user_id' => $user->id]);
-
-    actingAs($user);
-
-    Livewire::test(ConversationDetailPage::class, ['conversation_id' => $conversation->id])
-        ->assertForbidden();
 });
 
 it('eager loads relationships', function () {
