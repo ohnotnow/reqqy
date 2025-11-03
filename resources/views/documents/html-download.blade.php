@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ $documentName }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            background-color: #f9fafb;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 56rem;
+            margin: 0 auto;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+        }
+
+        .header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .header h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #011451;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .content h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #011451;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            line-height: 1.3;
+        }
+
+        .content h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #011451;
+            margin-top: 1.75rem;
+            margin-bottom: 0.875rem;
+            line-height: 1.3;
+        }
+
+        .content h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #5C6F81;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            line-height: 1.3;
+        }
+
+        .content h4 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #5C6F81;
+            margin-top: 1.25rem;
+            margin-bottom: 0.625rem;
+        }
+
+        .content p {
+            margin-bottom: 1rem;
+            line-height: 1.75;
+        }
+
+        .content ul, .content ol {
+            margin-bottom: 1rem;
+            padding-left: 2rem;
+        }
+
+        .content ul {
+            list-style-type: disc;
+        }
+
+        .content ol {
+            list-style-type: decimal;
+        }
+
+        .content li {
+            margin-bottom: 0.5rem;
+            line-height: 1.75;
+        }
+
+        .content li > ul,
+        .content li > ol {
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .content a {
+            color: #0066CC;
+            text-decoration: underline;
+        }
+
+        .content a:hover {
+            color: #011451;
+        }
+
+        .content strong {
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .content em {
+            font-style: italic;
+        }
+
+        .content code {
+            background-color: #f3f4f6;
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: 'Courier New', monospace;
+        }
+
+        .content pre {
+            background-color: #1f2937;
+            color: #f9fafb;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            margin-bottom: 1rem;
+        }
+
+        .content pre code {
+            background-color: transparent;
+            padding: 0;
+            color: inherit;
+        }
+
+        .content blockquote {
+            border-left: 4px solid #011451;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: #4b5563;
+            font-style: italic;
+        }
+
+        .content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+
+        .content th,
+        .content td {
+            border: 1px solid #e5e7eb;
+            padding: 0.75rem;
+            text-align: left;
+        }
+
+        .content th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            color: #011451;
+        }
+
+        .content hr {
+            border: 0;
+            border-top: 1px solid #e5e7eb;
+            margin: 2rem 0;
+        }
+
+        .footer {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>{{ $documentName }}</h1>
+            <p>Created: {{ $createdAt }}</p>
+        </div>
+        <div class="content">
+            {!! $htmlContent !!}
+        </div>
+        <div class="footer">
+            <p>Generated by Reqqy &mdash; University of Glasgow</p>
+        </div>
+    </div>
+</body>
+</html>
