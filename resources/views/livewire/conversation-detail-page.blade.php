@@ -128,6 +128,7 @@
                         <div class="space-y-4">
                             <div class="flex items-start gap-3">
                                 <flux:button wire:click="downloadDocument({{ $document->id }})" icon="arrow-down-tray" size="sm" square tooltip="Download markdown file" />
+                                <flux:button wire:click="downloadDocumentAsHtml({{ $document->id }})" icon="globe-alt" size="sm" square tooltip="Download HTML file" />
                                 <div>
                                     <flux:heading size="lg">{{ $document->name }}</flux:heading>
                                     <flux:text class="mt-1 text-sm">
