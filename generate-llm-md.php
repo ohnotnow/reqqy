@@ -32,9 +32,9 @@ function getTechStack($repoPath) {
         $stack[] = "Laravel " . str_replace('^', '', $composer['require']['laravel/framework']);
     }
     // check the php version in the .lando.yml if it exists
-    if (file_exists('.lando.yml')) {
-        $landoYml = file_get_contents('.lando.yml');
-        if (preg_match('/php: (\d+\.\d+)/', $landoYml, $matches)) {
+    if (file_exists("$repoPath/.lando.yml")) {
+        $landoYml = file_get_contents("$repoPath/.lando.yml");
+        if (preg_match('/php:\s*[\'"]?(\d+\.\d+)[\'"]?/', $landoYml, $matches)) {
             $stack[] = "PHP " . $matches[1];
         }
     } else {
@@ -44,7 +44,7 @@ function getTechStack($repoPath) {
     }
 
     // Add a few key dependencies
-    $keyDeps = ['livewire/livewire'];
+    $keyDeps = ['livewire/livewire', 'livewire/flux', 'livewire/flux-pro'];
     foreach ($keyDeps as $dep) {
         if (isset($composer['require'][$dep])) {
             $stack[] = basename($dep);
@@ -118,7 +118,6 @@ function generateTree($dir, $repoRoot, $prefix = '', $isLast = true, $maxDepth =
         }
     }
 
-    print $output;
     return $output;
 }
 
@@ -160,7 +159,7 @@ function matchesGitignorePattern($relativePath, $pattern, $repoRoot): bool {
 }
 
 // --- 3. Extract test names ---
-function getTestFeatures($repoPath) {
+function getTestFeatures($repoPath, $useLlm = false) {
     $testsDir = "$repoPath/tests/Feature";
     if (!is_dir($testsDir)) {
         return ["No feature tests found"];
@@ -194,10 +193,109 @@ function getTestFeatures($repoPath) {
         }
     }
 
-    return array_unique($features);
+    $featureList = implode("\n", array_unique($features));
+
+    if ($useLlm) {
+        // call out to openai with this prompt:
+        $prompt = <<<PROMPT
+You are analyzing test names from a Laravel application to identify core features.
+
+Filter this list to include ONLY tests that describe:
+- Primary entities and resources (e.g., "can create a project")
+- User-facing workflows and business processes
+- Key integrations or automation
+- Important domain concepts
+
+EXCLUDE tests that are:
+- Validation rules (required fields, format checks, length limits)
+- Edge cases and error handling
+- Authorization/permission checks
+- Empty state displays
+- Form state management (resets, initialization)
+- Relationship eager loading or query optimization
+
+Keep ONE representative CRUD test per entity to show what exists in the system.
+For other tests, only include those that reveal business logic or workflows.
+
+Rewrite kept tests as concise feature statements.
+
+Here's the test list:
+
+[test-list]
+{$featureList}
+[/test-list]
+
+## Response format
+
+Output ONLY the filtered feature list. Do not include any introduction, explanation, or follow-up questions.
+PROMPT;
+
+        $apiKey = getenv('OPENAI_API_KEY');
+
+        if (empty($apiKey)) {
+            echo "Warning: OPENAI_API_KEY not set, skipping LLM filtering\n";
+            return $featureList;
+        }
+
+        $ch = curl_init('https://api.openai.com/v1/responses');
+
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $apiKey,
+            ],
+            CURLOPT_POSTFIELDS => json_encode([
+                'model' => 'gpt-5-nano',
+                'input' => $prompt,
+                "reasoning" => ["effort" => "low"],
+            ]),
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlError) {
+            echo "Warning: Curl error - $curlError\n";
+            return $featureList;
+        }
+
+        if ($httpCode !== 200) {
+            echo "Warning: OpenAI API returned HTTP $httpCode\n";
+            echo "Response: $response\n";
+            return $featureList;
+        }
+
+        $data = json_decode($response, true);
+
+        if (!$data || !isset($data['output'])) {
+            echo "Warning: Unexpected response format from OpenAI API\n";
+            return $featureList;
+        }
+
+        // Find the message output (skip reasoning output)
+        $messageOutput = null;
+        foreach ($data['output'] as $output) {
+            if ($output['type'] === 'message' && $output['status'] === 'completed') {
+                $messageOutput = $output;
+                break;
+            }
+        }
+
+        if (!$messageOutput || !isset($messageOutput['content'][0]['text'])) {
+            echo "Warning: Could not find message content in OpenAI response\n";
+            return $featureList;
+        }
+
+        $filteredFeatures = $messageOutput['content'][0]['text'];
+        return $filteredFeatures;
+    }
+    return $featureList;
 }
 
-// --- 4. Summarize README with LLM (placeholder) ---
 function summarizeReadme($repoPath) {
     $readmeFile = "$repoPath/README.md";
     if (!file_exists($readmeFile)) {
@@ -251,10 +349,8 @@ function getEntryPoints($repoPath) {
 }
 
 // --- Generate the START_HERE.md ---
-echo "Generating START_HERE.md for: $repoPath\n";
-
 $output = "# Repository Overview\n\n";
-$output .= "> Auto-generated by generate-start-here.php\n\n";
+$output .= "> Auto-generated by generate-llm-md.php\n\n";
 
 $output .= "## Purpose\n\n";
 $output .= summarizeReadme($repoPath) . "\n\n";
@@ -275,10 +371,8 @@ foreach ($entryPoints as $ep) {
 $output .= "\n";
 
 $output .= "## Features (from tests)\n\n";
-$features = getTestFeatures($repoPath);
-foreach ($features as $feature) {
-    $output .= "- $feature\n";
-}
+$features = getTestFeatures($repoPath, true);
+$output .= $features . "\n\n";
 
 // Write to file
 file_put_contents("$repoPath/.llm.md", $output);
