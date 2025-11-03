@@ -31,6 +31,12 @@
                                     </flux:badge>
                                 </div>
 
+                                @if($conversation->title)
+                                    <div class="mt-2">
+                                        <flux:text variant="strong">{{ $conversation->title }}</flux:text>
+                                    </div>
+                                @endif
+
                                 <div class="mt-3 flex flex-wrap gap-4 text-sm">
                                     <flux:text>
                                         <span class="font-medium">Initiated by:</span> {{ $conversation->user->username }}
