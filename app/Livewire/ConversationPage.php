@@ -13,6 +13,8 @@ use Livewire\Component;
 
 class ConversationPage extends Component
 {
+    public const MESSAGE_THRESHOLD_FOR_TITLE = 4;
+
     #[Url]
     public ?int $conversation_id = null;
 
@@ -66,6 +68,11 @@ class ConversationPage extends Component
         $this->refreshMessages();
 
         $this->messageContent = '';
+
+        if ($this->conversation->messages()->count() >= self::MESSAGE_THRESHOLD_FOR_TITLE
+            && $this->conversation->title === 'New conversation') {
+            \App\Jobs\GenerateConversationTitleJob::dispatch($this->conversation);
+        }
 
         $this->isAwaitingResponse = true;
         $this->addPendingMessage();

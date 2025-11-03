@@ -844,7 +844,7 @@ MARKDOWN,
             $conversation = Conversation::factory()->create([
                 'user_id' => $requestingUser->id,
                 'application_id' => null,
-                'title' => $data['title'] ?? null,
+                'title' => $data['title'] ?? 'New conversation',
                 'status' => $data['status'],
                 'signed_off_at' => $data['signed_off_at'],
                 'created_at' => $data['created_at'],

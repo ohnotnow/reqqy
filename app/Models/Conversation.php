@@ -18,6 +18,7 @@ class Conversation extends Model
         'application_id',
         'signed_off_at',
         'status',
+        'title',
     ];
 
     protected function casts(): array

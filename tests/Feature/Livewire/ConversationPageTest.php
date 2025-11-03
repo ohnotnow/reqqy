@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\GenerateConversationTitleJob;
 use App\Jobs\GenerateFeatureRequestPrdJob;
 use App\Jobs\GenerateNewApplicationPrdJob;
 use App\Jobs\ResearchAlternativesJob;
@@ -380,4 +381,131 @@ it('does not dispatch generate new application prd job when signing off a featur
         ->call('signOff');
 
     Queue::assertNotPushed(GenerateNewApplicationPrdJob::class);
+});
+
+it('starts new conversations with default title', function () {
+    $user = User::factory()->create();
+
+    expect(Conversation::count())->toBe(0);
+
+    $this->actingAs($user)
+        ->get(route('conversation'));
+
+    expect(Conversation::count())->toBe(1);
+
+    $conversation = Conversation::first();
+    expect($conversation->title)->toBe('New conversation');
+});
+
+it('dispatches title generation job when threshold reached', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $conversation = Conversation::factory()->create(['user_id' => $user->id]);
+
+    $fakeResponse = TextResponseFake::make()
+        ->withText('Test response')
+        ->withUsage(new Usage(10, 5));
+
+    Prism::fake([$fakeResponse, $fakeResponse, $fakeResponse, $fakeResponse]);
+
+    $component = Livewire::actingAs($user)
+        ->test(ConversationPage::class, ['conversation_id' => $conversation->id]);
+
+    // Send first message (count = 1, no job dispatched)
+    $component->set('messageContent', 'First message')
+        ->call('sendMessage');
+
+    Queue::assertNotPushed(GenerateConversationTitleJob::class);
+
+    // Generate LLM response (count = 2, no job dispatched)
+    $userMessage1 = Message::where('user_id', $user->id)->latest()->first();
+    $component->call('handleUserMessageCreated', $userMessage1->id);
+
+    Queue::assertNotPushed(GenerateConversationTitleJob::class);
+
+    // Send second message (count = 3, no job dispatched)
+    $component->set('messageContent', 'Second message')
+        ->call('sendMessage');
+
+    Queue::assertNotPushed(GenerateConversationTitleJob::class);
+
+    // Generate LLM response (count = 4, job should be dispatched)
+    $userMessage2 = Message::where('user_id', $user->id)->latest()->first();
+    $component->call('handleUserMessageCreated', $userMessage2->id);
+
+    // Now threshold is reached on next user message (count = 5)
+    $component->set('messageContent', 'Third message')
+        ->call('sendMessage');
+
+    Queue::assertPushed(GenerateConversationTitleJob::class, function ($job) use ($conversation) {
+        return $job->conversation->id === $conversation->id;
+    });
+});
+
+it('does not dispatch job before threshold', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $conversation = Conversation::factory()->create(['user_id' => $user->id]);
+
+    Livewire::actingAs($user)
+        ->test(ConversationPage::class, ['conversation_id' => $conversation->id])
+        ->set('messageContent', 'First message')
+        ->call('sendMessage');
+
+    expect(Message::count())->toBe(1);
+    Queue::assertNotPushed(GenerateConversationTitleJob::class);
+
+    Livewire::actingAs($user)
+        ->test(ConversationPage::class, ['conversation_id' => $conversation->id])
+        ->set('messageContent', 'Second message')
+        ->call('sendMessage');
+
+    expect(Message::count())->toBe(2);
+    Queue::assertNotPushed(GenerateConversationTitleJob::class);
+
+    Livewire::actingAs($user)
+        ->test(ConversationPage::class, ['conversation_id' => $conversation->id])
+        ->set('messageContent', 'Third message')
+        ->call('sendMessage');
+
+    expect(Message::count())->toBe(3);
+    Queue::assertNotPushed(GenerateConversationTitleJob::class);
+});
+
+it('does not dispatch job if title already customized', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $conversation = Conversation::factory()->create([
+        'user_id' => $user->id,
+        'title' => 'Custom Title',
+    ]);
+
+    // Create 3 existing messages to be near threshold
+    Message::factory()->create([
+        'conversation_id' => $conversation->id,
+        'user_id' => $user->id,
+        'content' => 'Message 1',
+    ]);
+    Message::factory()->create([
+        'conversation_id' => $conversation->id,
+        'user_id' => null,
+        'content' => 'Response 1',
+    ]);
+    Message::factory()->create([
+        'conversation_id' => $conversation->id,
+        'user_id' => $user->id,
+        'content' => 'Message 2',
+    ]);
+
+    // Send 4th message to reach threshold
+    Livewire::actingAs($user)
+        ->test(ConversationPage::class, ['conversation_id' => $conversation->id])
+        ->set('messageContent', 'Fourth message')
+        ->call('sendMessage');
+
+    expect(Message::count())->toBe(4);
+    Queue::assertNotPushed(GenerateConversationTitleJob::class);
 });

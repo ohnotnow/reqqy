@@ -21,6 +21,7 @@ class ConversationFactory extends Factory
         return [
             'user_id' => User::factory(),
             'application_id' => Application::factory(),
+            'title' => $this->faker->sentence,
         ];
     }
 }
