@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\DocumentType;
 use App\Models\Conversation;
 use App\Models\Document;
 use App\Services\LlmService;
@@ -34,6 +35,7 @@ class GenerateNewApplicationPrdJob implements ShouldQueue
 
         Document::create([
             'conversation_id' => $this->conversation->id,
+            'type' => DocumentType::Prd,
             'name' => 'Product Requirements Document',
             'content' => $content,
         ]);

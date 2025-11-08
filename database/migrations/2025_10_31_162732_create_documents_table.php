@@ -14,8 +14,10 @@ return new class extends Migration
         Schema::create('documents', function (Blueprint $table) {
             $table->id();
             $table->foreignId('conversation_id')->constrained('conversations')->cascadeOnDelete();
+            $table->string('type')->nullable();
             $table->string('name');
             $table->text('content');
+            $table->json('metadata')->nullable();
             $table->timestamps();
         });
     }

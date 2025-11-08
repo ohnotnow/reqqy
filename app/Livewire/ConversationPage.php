@@ -2,7 +2,7 @@
 
 namespace App\Livewire;
 
-use App\Jobs\ResearchAlternativesJob;
+use App\Events\ConversationSignedOff;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Services\LlmService;
@@ -132,14 +132,7 @@ class ConversationPage extends Component
             'signed_off_at' => now(),
         ]);
 
-        if (! $this->conversation->application_id) {
-            // New application request
-            ResearchAlternativesJob::dispatch($this->conversation);
-            \App\Jobs\GenerateNewApplicationPrdJob::dispatch($this->conversation);
-        } else {
-            // Feature request for existing application
-            \App\Jobs\GenerateFeatureRequestPrdJob::dispatch($this->conversation);
-        }
+        ConversationSignedOff::dispatch($this->conversation);
 
         sleep(1);
 

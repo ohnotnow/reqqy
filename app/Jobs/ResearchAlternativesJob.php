@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\DocumentType;
 use App\Models\Conversation;
 use App\Models\Document;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -36,6 +37,7 @@ MARKDOWN;
 
         Document::create([
             'conversation_id' => $this->conversation->id,
+            'type' => DocumentType::Research,
             'name' => 'Existing Solution Research',
             'content' => $stubContent,
         ]);
