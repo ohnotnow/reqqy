@@ -18,62 +18,24 @@ class GenerateNewApplicationPrdJob implements ShouldQueue
 
     public function handle(LlmService $llmService): void
     {
-        // TODO: Re-enable LLM call once end-to-end workflow is verified
-        // $messages = $this->conversation->messages()
-        //     ->orderBy('created_at')
-        //     ->get();
-        //
-        // $systemPrompt = view('prompts.new-application-prd')->render();
-        //
-        // $content = $llmService->generateResponse(
-        //     conversation: $this->conversation,
-        //     messages: $messages,
-        //     systemPrompt: $systemPrompt
-        // );
+        $messages = $this->conversation->messages()
+            ->orderBy('created_at')
+            ->get();
 
-        $stubContent = <<<'MARKDOWN'
-# Product Requirements Document
+        $systemPrompt = view('prompts.new-application-prd', [
+            'conversation' => $this->conversation,
+        ])->render();
 
-## Executive Summary
-This is a stub PRD that will be replaced with an LLM-generated document once the workflow is verified.
-
-## Goals and Objectives
-- Goal 1
-- Goal 2
-
-## User Personas
-- User persona 1
-- User persona 2
-
-## Functional Requirements
-- Requirement 1
-- Requirement 2
-
-## Non-Functional Requirements
-- Performance requirements
-- Security requirements
-
-## User Stories
-- As a user, I want...
-
-## Technical Considerations
-- Technology stack
-- Integration points
-
-## Out of Scope
-- Future enhancements
-
-## Open Questions
-- Question 1
-- Question 2
-
-**Status:** LLM generation pending - this is a stub document
-MARKDOWN;
+        $content = $llmService->generateResponse(
+            conversation: $this->conversation,
+            messages: $messages,
+            systemPrompt: $systemPrompt
+        );
 
         Document::create([
             'conversation_id' => $this->conversation->id,
             'name' => 'Product Requirements Document',
-            'content' => $stubContent,
+            'content' => $content,
         ]);
     }
 }

@@ -8,6 +8,8 @@ use App\Models\Message;
 use App\Models\User;
 use App\Notifications\NewDocumentCreated;
 use Illuminate\Support\Facades\Notification;
+use Prism\Prism\Facades\Prism;
+use Prism\Prism\Testing\TextResponseFake;
 
 use function Pest\Laravel\assertDatabaseCount;
 use function Pest\Laravel\assertDatabaseHas;
@@ -16,6 +18,54 @@ beforeEach(function () {
     config([
         'reqqy.llm.default' => 'anthropic/claude-3-5-sonnet-20241022',
         'reqqy.llm.small' => 'anthropic/claude-3-haiku-20240307',
+    ]);
+
+    // Mock Prism responses
+    Prism::fake([
+        TextResponseFake::make()->withText('# Feature Request Document
+
+## Feature Summary
+This is a mocked feature request document generated for testing purposes.
+
+## Problem Statement
+Users need the ability to toggle between light and dark themes to reduce eye strain.
+
+## Proposed Solution
+Implement a theme switcher that persists user preference.
+
+## User Stories
+- As a user, I want to toggle dark mode so that I can reduce eye strain
+- As a user, I want my theme preference to be remembered
+
+## Acceptance Criteria
+- User can toggle between light and dark themes
+- Theme preference is persisted across sessions
+- All UI components support both themes
+
+## Integration Points
+- Existing user settings system
+- Layout and component styling
+
+## Technical Considerations
+- CSS variables for theme colors
+- LocalStorage or database for preference storage
+- Tailwind dark mode utilities
+
+## UI/UX Requirements
+- Toggle switch in settings or navigation bar
+- Smooth transition between themes
+
+## Testing Requirements
+- Unit tests for theme persistence logic
+- Feature tests for theme switching workflow
+- Manual testing across different components
+
+## Out of Scope
+- Custom color themes beyond light/dark
+- Per-page theme preferences
+
+## Open Questions
+- Should we support system theme detection?'),
     ]);
 });
 
@@ -63,8 +113,7 @@ it('generates a feature request document from conversation messages', function (
 
     $document = Document::first();
     expect($document->content)->toContain('Feature Request Document');
-    expect($document->content)->toContain('My App');
-    expect($document->content)->toContain('LLM generation pending - this is a stub document');
+    expect($document->content)->toContain('This is a mocked feature request document generated for testing purposes');
     expect($document->conversation_id)->toBe($conversation->id);
 
     // Assert notifications sent to admin users only
@@ -85,12 +134,11 @@ it('creates a feature request document even if no messages exist', function () {
     $job = new GenerateFeatureRequestPrdJob($conversation);
     $job->handle(app(\App\Services\LlmService::class));
 
-    // Assert - document is still created with stub content
+    // Assert - document is still created with mocked content
     assertDatabaseCount('documents', 1);
     $document = Document::first();
     expect($document->content)->toContain('Feature Request Document');
-    expect($document->content)->toContain('Test App');
-    expect($document->content)->toContain('LLM generation pending - this is a stub document');
+    expect($document->content)->toContain('This is a mocked feature request document generated for testing purposes');
 });
 
 it('notifies all admin users when a feature request document is created', function () {
@@ -126,7 +174,7 @@ it('notifies all admin users when a feature request document is created', functi
     Notification::assertCount(2);
 });
 
-it('includes application name in feature request document', function () {
+it('generates feature request document for specific application', function () {
     // Arrange
     $user = User::factory()->create();
     $application = Application::factory()->create(['name' => 'Awesome Application']);
@@ -139,9 +187,11 @@ it('includes application name in feature request document', function () {
     $job = new GenerateFeatureRequestPrdJob($conversation);
     $job->handle(app(\App\Services\LlmService::class));
 
-    // Assert
+    // Assert - document is created with mocked content
     $document = Document::first();
-    expect($document->content)->toContain('Awesome Application');
+    expect($document->content)->toContain('Feature Request Document');
+    expect($document->content)->toContain('This is a mocked feature request document generated for testing purposes');
+    expect($document->conversation->application->name)->toBe('Awesome Application');
 });
 
 it('handles conversations without an application', function () {
@@ -155,7 +205,9 @@ it('handles conversations without an application', function () {
     $job = new GenerateFeatureRequestPrdJob($conversation);
     $job->handle(app(\App\Services\LlmService::class));
 
-    // Assert - document is still created with fallback application name
+    // Assert - document is still created with mocked content
     $document = Document::first();
-    expect($document->content)->toContain('Unknown Application');
+    expect($document->content)->toContain('Feature Request Document');
+    expect($document->content)->toContain('This is a mocked feature request document generated for testing purposes');
+    expect($document->conversation->application_id)->toBeNull();
 });

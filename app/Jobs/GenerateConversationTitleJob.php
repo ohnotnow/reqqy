@@ -35,17 +35,24 @@ class GenerateConversationTitleJob implements ShouldQueue
             'messages' => $messages,
         ])->render();
 
-        $title = $llmService->generateResponse(
-            conversation: $this->conversation,
-            messages: collect(),
-            systemPrompt: $prompt,
-            useSmallModel: true
-        );
+        try {
+            $title = $llmService->generateResponse(
+                conversation: $this->conversation,
+                messages: collect(),
+                systemPrompt: $prompt,
+                useSmallModel: true
+            );
 
-        $cleanedTitle = Str::limit(trim($title), 100, '');
+            $cleanedTitle = Str::limit(trim($title), 100, '');
 
-        $this->conversation->update([
-            'title' => $cleanedTitle,
-        ]);
+            $this->conversation->update([
+                'title' => $cleanedTitle,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to generate conversation title', [
+                'conversation_id' => $this->conversation->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

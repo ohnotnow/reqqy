@@ -165,6 +165,8 @@ it('prevents sending messages after conversation is signed off', function () {
 });
 
 it('can sign off a conversation', function () {
+    Queue::fake();
+
     $user = User::factory()->create();
     $conversation = Conversation::factory()->create(['user_id' => $user->id]);
 
