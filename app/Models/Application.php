@@ -55,7 +55,7 @@ class Application extends Model
 
     public function promoteToInternal(): void
     {
-        if (!$this->isProposal()) {
+        if (! $this->isProposal()) {
             throw new \Exception('Only proposed applications can be promoted');
         }
 

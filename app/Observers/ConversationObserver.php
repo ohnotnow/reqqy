@@ -18,6 +18,7 @@ class ConversationObserver
     public function __construct(
         protected LlmService $llmService
     ) {}
+
     /**
      * Handle the Conversation "updated" event.
      */
@@ -43,7 +44,7 @@ class ConversationObserver
 
     private function shouldCreateProposedApplication(Conversation $conversation): bool
     {
-        if (!$conversation->wasChanged('status')) {
+        if (! $conversation->wasChanged('status')) {
             return false;
         }
 
@@ -60,7 +61,7 @@ class ConversationObserver
 
     private function shouldCreateGitHubIssue(Conversation $conversation): bool
     {
-        if (!$conversation->wasChanged('status')) {
+        if (! $conversation->wasChanged('status')) {
             return false;
         }
 

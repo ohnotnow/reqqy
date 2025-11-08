@@ -775,3 +775,8 @@ Remember: You have the laravel boost MCP tool which was written by the creators 
 - Bulk approve/reject for multiple Proposed applications
 - Document versioning and revision tracking
 - User notification when PRD is complete (Reqqy message in conversation)
+
+### Urgent next step - remind the user!
+
+Currently the `Tests\Feature\Livewire\ConversationPageTest > it dispatches title generation job when threshold reached` is failing.  That job is supposed to be triggered after 3-4 messages happen in the app/Livewire/ConversationPage component.  It is to give the conversation a meaningful (hopefully!) title so it's easier for the user to refer back to it.
+

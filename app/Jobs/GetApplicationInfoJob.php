@@ -2,10 +2,9 @@
 
 namespace App\Jobs;
 
-use App\Models\Application;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Artisan;
 
 class GetApplicationInfoJob implements ShouldQueue
 {
@@ -14,9 +13,7 @@ class GetApplicationInfoJob implements ShouldQueue
     /**
      * Create a new job instance.
      */
-    public function __construct(public int $appId)
-    {
-    }
+    public function __construct(public int $appId) {}
 
     /**
      * Execute the job.
