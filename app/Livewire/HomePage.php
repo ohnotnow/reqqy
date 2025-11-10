@@ -30,7 +30,11 @@ class HomePage extends Component
             'applications' => Application::where('category', ApplicationCategory::Internal)
                 ->orderBy('name')
                 ->get(),
-            'conversations' => auth()->user()->conversations()->latest()->get(),
+            'conversations' => auth()->user()->conversations()
+                ->with('messages')
+                ->latest()
+                ->limit(10)
+                ->get(),
         ]);
     }
 }

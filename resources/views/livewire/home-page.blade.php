@@ -50,12 +50,29 @@
     <div class="grid md:grid-cols-2 gap-6 mt-6">
         @foreach($conversations as $conversation)
             <a href="{{ route('conversation', ['conversation_id' => $conversation->id]) }}">
-                <flux:card class="hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer h-full">
-                    <flux:heading size="lg">{{ $conversation->created_at->format('d/m/Y H:i') }}</flux:heading>
-                    <flux:text>
-                        {{ Str::limit($conversation->messages->first()?->content, 50, '...') }}
-                    </flux:text>
-                </flux:card>
+                <flux:callout
+                    icon="{{ $conversation->application_id ? 'puzzle-piece' : 'sparkles' }}"
+                    variant="{{ $conversation->application_id ? 'info' : 'warning' }}"
+                    class="cursor-pointer hover:opacity-80 transition-opacity"
+                >
+                    <div class="space-y-2">
+                        <div class="font-semibold">
+                            @if($conversation->title !== 'New conversation')
+                                {{ $conversation->title }}
+                            @else
+                                {{ Str::limit($conversation->messages->first()?->content, 50, '...') }}
+                            @endif
+                        </div>
+                        @if($conversation->messages->isNotEmpty())
+                            <flux:text class="text-sm">
+                                {{ Str::words($conversation->messages->first()?->content, 50, '...') }}
+                            </flux:text>
+                        @endif
+                        <flux:text class="text-xs text-gray-500 dark:text-gray-400">
+                            {{ $conversation->created_at->format('d/m/Y H:i') }} • {{ $conversation->messages->count() }} {{ Str::plural('message', $conversation->messages->count()) }}
+                        </flux:text>
+                    </div>
+                </flux:callout>
             </a>
         @endforeach
     </div>

@@ -19,18 +19,22 @@ class LlmService
      * @param  Collection<int, \App\Models\Message>  $messages
      * @param  string|null  $systemPrompt  Custom system prompt, or null to use default chat prompt
      * @param  bool  $useSmallModel  Whether to use the small/cheap model (default: false)
+     * @param  int|null  $maxTokens  Maximum tokens for response (default: config value or 100000)
      */
-    public function generateResponse(Conversation $conversation, Collection $messages, ?string $systemPrompt = null, bool $useSmallModel = false): string
+    public function generateResponse(Conversation $conversation, Collection $messages, ?string $systemPrompt = null, bool $useSmallModel = false, ?int $maxTokens = null): string
     {
         [$provider, $model] = $this->parseProviderAndModel($useSmallModel);
 
         $systemPrompt = $systemPrompt ?? $this->renderChatPrompt($conversation);
         $prismMessages = $this->convertToPrismMessages($messages);
 
+        $maxTokens = $maxTokens ?? config('reqqy.max_tokens.default', 100000);
+
         $response = Prism::text()
             ->using($provider, $model)
             ->withSystemPrompt($systemPrompt)
             ->withMessages($prismMessages)
+            ->withMaxTokens($maxTokens)
             ->asText();
 
         return $response->text;

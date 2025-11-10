@@ -8,6 +8,7 @@ use App\Models\Document;
 use App\Services\LlmService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
 
 class GenerateNewApplicationPrdJob implements ShouldQueue
 {
@@ -27,10 +28,21 @@ class GenerateNewApplicationPrdJob implements ShouldQueue
             'conversation' => $this->conversation,
         ])->render();
 
+        $totalMessageChars = $messages->sum(fn ($msg) => strlen($msg->content));
+
+        Log::info('Generating New Application PRD', [
+            'conversation_id' => $this->conversation->id,
+            'system_prompt_chars' => strlen($systemPrompt),
+            'message_count' => $messages->count(),
+            'total_message_chars' => $totalMessageChars,
+            'total_input_chars' => strlen($systemPrompt) + $totalMessageChars,
+        ]);
+
         $content = $llmService->generateResponse(
             conversation: $this->conversation,
             messages: $messages,
-            systemPrompt: $systemPrompt
+            systemPrompt: $systemPrompt,
+            maxTokens: config('reqqy.max_tokens.prd', 100000)
         );
 
         Document::create([
