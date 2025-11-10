@@ -124,9 +124,10 @@ class ConversationPage extends Component
 
     public function signOff(): void
     {
-        if ($this->conversation->isSignedOff()) {
-            return;
-        }
+        // TEMPORARY: Allow re-triggering sign-off for debugging
+        // if ($this->conversation->isSignedOff()) {
+        //     return;
+        // }
 
         $this->conversation->update([
             'signed_off_at' => now(),

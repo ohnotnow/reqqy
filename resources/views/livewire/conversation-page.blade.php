@@ -7,11 +7,12 @@
                 New Application Request
             @endif
         </flux:heading>
-        @if(!$conversation->isSignedOff())
+        {{-- TEMPORARY: Always show sign-off button for debugging --}}
+        {{-- @if(!$conversation->isSignedOff()) --}}
             <flux:button wire:click="signOff" variant="primary">
-                Sign Off
+                Sign Off {{ $conversation->isSignedOff() ? '(Re-trigger for debugging)' : '' }}
             </flux:button>
-        @endif
+        {{-- @endif --}}
     </div>
 
     @if($conversationMessages->isNotEmpty())

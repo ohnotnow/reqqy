@@ -16,7 +16,9 @@ class GenerateFeatureRequestPrdJob implements ShouldQueue
 
     public function __construct(
         public Conversation $conversation
-    ) {}
+    ) {
+        $this->onQueue('document-generation');
+    }
 
     public function handle(LlmService $llmService): void
     {
