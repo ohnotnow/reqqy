@@ -133,6 +133,7 @@ public function __construct(
 1. **Horizon hasn't restarted** ⚠️ MOST LIKELY
    - Old Horizon process still running with old config
    - **Next step**: `lando artisan horizon:terminate` and verify new supervisors are running
+   - THE USER HAS 100% CONFIDENCE THAT THEY HAVE RESTARTED HORIZON MULTIPLE TIMES - THIS IS NOT THE ISSUE
 
 2. **Different timeout source**
    - Some other config or Docker timeout we haven't found
