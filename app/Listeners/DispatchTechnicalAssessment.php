@@ -2,8 +2,9 @@
 
 namespace App\Listeners;
 
-use App\Events\ConversationSignedOff;
 use App\Jobs\TechnicalAssessmentJob;
+use App\Events\ConversationSignedOff;
+use App\Jobs\GenerateFeatureRequestPrdJob;
 
 class DispatchTechnicalAssessment
 {
@@ -14,6 +15,7 @@ class DispatchTechnicalAssessment
         }
 
         if ($event->conversation->application?->repo === null) {
+            GenerateFeatureRequestPrdJob::dispatch($event->conversation);
             return;
         }
 

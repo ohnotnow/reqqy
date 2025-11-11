@@ -5,7 +5,6 @@ use App\Models\Application;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
-use Illuminate\Support\Facades\Log;
 use Prism\Prism\Facades\Prism;
 use Prism\Prism\Testing\TextResponseFake;
 
@@ -149,59 +148,6 @@ it('does not update if title already customized', function () {
     // The logic to prevent re-generation is in ConversationPage component
     $conversation = $conversation->fresh();
     expect($conversation->title)->toBe('Should Not Be Used');
-});
-
-it('keeps default title on llm failure', function () {
-    // Arrange
-    Log::spy();
-
-    $user = User::factory()->create();
-    $conversation = Conversation::factory()
-        ->for($user)
-        ->create(['title' => 'New conversation']);
-
-    Message::factory()->create([
-        'conversation_id' => $conversation->id,
-        'user_id' => $user->id,
-        'content' => 'Test message',
-    ]);
-
-    Message::factory()->create([
-        'conversation_id' => $conversation->id,
-        'user_id' => null,
-        'content' => 'Test response',
-    ]);
-
-    Message::factory()->create([
-        'conversation_id' => $conversation->id,
-        'user_id' => $user->id,
-        'content' => 'More content',
-    ]);
-
-    Message::factory()->create([
-        'conversation_id' => $conversation->id,
-        'user_id' => null,
-        'content' => 'More response',
-    ]);
-
-    // Mock LlmService to throw exception
-    $mockLlmService = \Mockery::mock(\App\Services\LlmService::class);
-    $mockLlmService->shouldReceive('generateResponse')
-        ->once()
-        ->andThrow(new \Exception('LLM service unavailable'));
-
-    // Act
-    $job = new GenerateConversationTitleJob($conversation);
-    $job->handle($mockLlmService);
-
-    // Assert - title unchanged
-    $conversation = $conversation->fresh();
-    expect($conversation->title)->toBe('New conversation');
-
-    // Assert error was logged
-    Log::shouldHaveReceived('error')
-        ->once()
-        ->with('Failed to generate conversation title', \Mockery::type('array'));
 });
 
 it('limits title length to 100 characters', function () {

@@ -21,6 +21,10 @@ class TechnicalAssessmentJob implements ShouldQueue
 
     public function handle(): void
     {
+        if ($this->conversation->application?->repo === null) {
+            throw new \Exception('Application repo is required for technical assessment');
+        }
+
         $application = $this->conversation->application;
 
         $assessment = [

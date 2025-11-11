@@ -9,6 +9,6 @@ class GenerateFeatureRequestPrd
 {
     public function handle(TechnicalAssessmentCompleted $event): void
     {
-        GenerateFeatureRequestPrdJob::dispatch($event->document->conversation);
+        GenerateFeatureRequestPrdJob::dispatch($event->document->conversation)->onQueue('research');
     }
 }

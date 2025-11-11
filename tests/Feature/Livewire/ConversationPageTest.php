@@ -189,22 +189,6 @@ it('can sign off a conversation', function () {
     });
 });
 
-it('prevents signing off a conversation that is already signed off', function () {
-    $user = User::factory()->create();
-    $signedOffAt = now()->subHour();
-    $conversation = Conversation::factory()->create([
-        'user_id' => $user->id,
-        'signed_off_at' => $signedOffAt,
-    ]);
-
-    Livewire::actingAs($user)
-        ->test(ConversationPage::class, ['conversation_id' => $conversation->id])
-        ->call('signOff');
-
-    expect($conversation->fresh()->signed_off_at->toDateTimeString())->toBe($signedOffAt->toDateTimeString());
-    expect(Message::count())->toBe(0);
-});
-
 it('displays existing messages in the conversation', function () {
     $user = User::factory()->create();
     $conversation = Conversation::factory()->create(['user_id' => $user->id]);

@@ -58,7 +58,7 @@ test('it dispatches PRD job directly for feature request without repo', function
     Queue::fake();
 
     $application = Application::factory()->create([
-        'repo' => null,
+        'repo' => '',
     ]);
 
     $conversation = Conversation::factory()->create([
@@ -68,6 +68,7 @@ test('it dispatches PRD job directly for feature request without repo', function
 
     ConversationSignedOff::dispatch($conversation);
 
+    Queue::assertPushed(GenerateFeatureRequestPrdJob::class);
     Queue::assertPushed(GenerateFeatureRequestPrdJob::class, function ($job) use ($conversation) {
         return $job->conversation->id === $conversation->id;
     });

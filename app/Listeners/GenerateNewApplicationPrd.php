@@ -13,6 +13,6 @@ class GenerateNewApplicationPrd
             return;
         }
 
-        GenerateNewApplicationPrdJob::dispatch($event->conversation);
+        GenerateNewApplicationPrdJob::dispatch($event->conversation)->onQueue('research');
     }
 }
