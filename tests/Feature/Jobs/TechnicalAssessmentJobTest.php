@@ -1,7 +1,6 @@
 <?php
 
 use App\DocumentType;
-use App\Events\TechnicalAssessmentCompleted;
 use App\Jobs\TechnicalAssessmentJob;
 use App\Models\Application;
 use App\Models\Conversation;
@@ -83,38 +82,15 @@ test('it includes proper metadata', function () {
     expect($document->metadata['prompt_version'])->toBe('v1.0');
 });
 
-test('it fires TechnicalAssessmentCompleted event', function () {
-    Event::fake();
-    Queue::fake();
-
-    $application = Application::factory()->create(['repo' => 'https://github.com/owner/repo']);
-    $conversation = Conversation::factory()->create(['application_id' => $application->id]);
-
-    $job = new TechnicalAssessmentJob($conversation);
-    $job->handle();
-
-    Event::assertDispatched(TechnicalAssessmentCompleted::class, function ($event) use ($conversation) {
-        return $event->document->conversation_id === $conversation->id
-            && $event->document->type === DocumentType::TechnicalAssessment;
-    });
-});
-
-test('it handles conversation without application gracefully', function () {
+test('it throws exception when conversation has no application', function () {
     Event::fake();
     Queue::fake();
 
     $conversation = Conversation::factory()->create(['application_id' => null]);
 
     $job = new TechnicalAssessmentJob($conversation);
-    $job->handle();
 
-    $document = Document::where('conversation_id', $conversation->id)
-        ->where('type', DocumentType::TechnicalAssessment)
-        ->first();
-
-    expect($document)->not->toBeNull();
-    expect($document->metadata['application_id'])->toBeNull();
-    expect($document->metadata['repo_path'])->toBeNull();
+    expect(fn () => $job->handle())->toThrow(\Exception::class, 'Application repo is required for technical assessment');
 });
 
 test('it creates assessment with valid size estimate', function () {

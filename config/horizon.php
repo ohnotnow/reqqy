@@ -210,9 +210,9 @@ return [
             'timeout' => 60,
             'nice' => 0,
         ],
-        'supervisor-documents' => [
+        'supervisor-short' => [
             'connection' => 'redis',
-            'queue' => ['document-generation'],
+            'queue' => ['short'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'maxProcesses' => 1,
@@ -220,12 +220,12 @@ return [
             'maxJobs' => 0,
             'memory' => 128,
             'tries' => 1,
-            'timeout' => 180,
+            'timeout' => 30,
             'nice' => 0,
         ],
-        'supervisor-research' => [
+        'supervisor-medium' => [
             'connection' => 'redis',
-            'queue' => ['research'],
+            'queue' => ['medium'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'maxProcesses' => 1,
@@ -233,7 +233,20 @@ return [
             'maxJobs' => 0,
             'memory' => 128,
             'tries' => 1,
-            'timeout' => 900,
+            'timeout' => 300,
+            'nice' => 0,
+        ],
+        'supervisor-long' => [
+            'connection' => 'redis',
+            'queue' => ['long'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 1,
+            'timeout' => 1800,
             'nice' => 0,
         ],
     ],
@@ -245,12 +258,17 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
-            'supervisor-documents' => [
+            'supervisor-short' => [
+                'maxProcesses' => 5,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
+            'supervisor-medium' => [
                 'maxProcesses' => 3,
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
-            'supervisor-research' => [
+            'supervisor-long' => [
                 'maxProcesses' => 2,
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
@@ -261,10 +279,13 @@ return [
             'supervisor-1' => [
                 'maxProcesses' => 3,
             ],
-            'supervisor-documents' => [
+            'supervisor-short' => [
+                'maxProcesses' => 2,
+            ],
+            'supervisor-medium' => [
                 'maxProcesses' => 1,
             ],
-            'supervisor-research' => [
+            'supervisor-long' => [
                 'maxProcesses' => 1,
             ],
         ],

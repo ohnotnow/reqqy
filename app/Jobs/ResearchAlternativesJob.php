@@ -15,7 +15,7 @@ class ResearchAlternativesJob implements ShouldQueue
     public function __construct(
         public Conversation $conversation
     ) {
-        $this->onQueue('research');
+        $this->onQueue('long');
     }
 
     public function handle(): void

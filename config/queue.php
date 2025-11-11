@@ -89,6 +89,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Semantic Queue Names
+    |--------------------------------------------------------------------------
+    |
+    | This application uses semantic queue names based on expected duration:
+    |
+    | - short (< 30 seconds): Quick tasks like title generation, notifications
+    | - medium (1-5 minutes): LLM generation, PRD creation, API calls
+    | - long (5-30+ minutes): Heavy processing, research, codebase analysis
+    |
+    | Workers can be configured to prioritize short queues for responsiveness.
+    |
+    */
+
+    /*
+    |--------------------------------------------------------------------------
     | Job Batching
     |--------------------------------------------------------------------------
     |

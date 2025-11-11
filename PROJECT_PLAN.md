@@ -780,3 +780,6 @@ Remember: You have the laravel boost MCP tool which was written by the creators 
 
 Currently the `Tests\Feature\Livewire\ConversationPageTest > it dispatches title generation job when threshold reached` is failing.  That job is supposed to be triggered after 3-4 messages happen in the app/Livewire/ConversationPage component.  It is to give the conversation a meaningful (hopefully!) title so it's easier for the user to refer back to it.
 
+## Some future ideas
+
+- Allow admin users to regenerate the PRD and Research documents - with some optional extra guidence to help them tweak the prompt send to the LLM.  This could be a flux:modal flyout variant with a simple optional flux:textarea which just dispatched the job again.

@@ -3,7 +3,6 @@
 namespace App\Jobs;
 
 use App\DocumentType;
-use App\Events\TechnicalAssessmentCompleted;
 use App\Models\Conversation;
 use App\Models\Document;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -16,7 +15,7 @@ class TechnicalAssessmentJob implements ShouldQueue
     public function __construct(
         public Conversation $conversation
     ) {
-        $this->onQueue('research');
+        $this->onQueue('long');
     }
 
     public function handle(): void
@@ -58,7 +57,7 @@ class TechnicalAssessmentJob implements ShouldQueue
             'implementation_notes' => 'Similar to CSV export at ReportController.php:120. Can reuse ExportJob pattern with new XLSX driver. Suggest using Laravel Excel package.',
         ];
 
-        $document = Document::create([
+        Document::create([
             'conversation_id' => $this->conversation->id,
             'type' => DocumentType::TechnicalAssessment,
             'name' => 'Technical Assessment',
@@ -71,7 +70,5 @@ class TechnicalAssessmentJob implements ShouldQueue
                 'repo_path' => $application?->repo,
             ],
         ]);
-
-        TechnicalAssessmentCompleted::dispatch($document);
     }
 }

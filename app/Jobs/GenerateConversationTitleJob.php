@@ -16,7 +16,9 @@ class GenerateConversationTitleJob implements ShouldQueue
 
     public function __construct(
         public Conversation $conversation
-    ) {}
+    ) {
+        $this->onQueue('short');
+    }
 
     public function handle(LlmService $llmService): void
     {
