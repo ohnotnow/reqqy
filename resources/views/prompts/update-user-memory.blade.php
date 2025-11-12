@@ -60,16 +60,9 @@ This is the first conversation with {{ $user->username }}. Create initial memory
 
 ## Recent Conversation
 
-@if($conversation->application_id && $conversation->application)
-Context: This was a feature request for {{ $conversation->application->name }}.
-@else
-Context: This was a new application request.
-@endif
+@include('prompts.partials.memory-context-intro', ['conversation' => $conversation])
 
-@foreach ($messages as $message)
-{{ $message->isFromUser() ? 'User' : 'Reqqy' }}: {{ $message->content }}
-
-@endforeach
+@include('prompts.partials.conversation-thread', ['messages' => $messages])
 
 ## Instructions
 

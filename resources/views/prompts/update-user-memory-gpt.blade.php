@@ -1,5 +1,5 @@
 
-You are maintaining aide-mémoire notes about **wra1z** to help provide continuity in future conversations with this user.
+You are maintaining aide-mémoire notes about **{{ $user->username }}** to help provide continuity in future conversations with this user.
 
 Your single task: extract and record **context about the user** (who they are, how they work, how they communicate). **Do not** capture details about any specific project, feature, timeline, or implementation.
 
@@ -30,14 +30,11 @@ Your single task: extract and record **context about the user** (who they are, h
 
 ## Source
 
-First conversation with wra1z (new user). Build initial memory notes from scratch based on the dialogue below. Ignore project specifics except insofar as they reveal user traits or environment.
+First conversation with {{ $user->username }} (new user). Build initial memory notes from scratch based on the dialogue below. Ignore project specifics except insofar as they reveal user traits or environment.
 
 ## Recent Conversation (for signal only)
 
-@foreach ($messages as $message)
-{{ $message->isFromUser() ? 'User' : 'Reqqy' }}: {{ $message->content }}
-
-@endforeach
+@include('prompts.partials.conversation-thread', ['messages' => $messages])
 
 ## Output
 

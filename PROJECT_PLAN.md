@@ -749,6 +749,99 @@ Remember: You have the laravel boost MCP tool which was written by the creators 
   - `app/Livewire/HomePage.php` (updated dropdown filter)
   - `tests/Feature/Livewire/ApplicationsPageTest.php`
 
+### 2025-11-12 - Conversation Summary & User Memory Features
+- ✅ **Implemented two AI-powered intelligence features to enhance Reqqy's capabilities**
+- ✅ **Conversation Summary Feature**
+  - Automatically generates concise 3-5 sentence summaries when user signs off
+  - Uses small model (Claude Haiku) for cost efficiency
+  - Displayed prominently in admin conversation detail view
+  - Helps admins quickly understand what was requested without reading full conversation
+  - Created `GenerateConversationSummaryJob` with `Batchable` trait
+  - Created Blade prompt template: `resources/views/prompts/generate-conversation-summary.blade.php`
+  - Added `summary` column to conversations table (nullable text)
+  - Updated `Conversation` model with fillable field
+  - Updated `ConversationDetailPage` to display summary as callout with document-text icon
+  - Updated `TestDataSeeder` with realistic summaries for all 11 conversations
+  - Integrated into `OrchestrateConversationWorkflow` to run in parallel with PRD generation
+- ✅ **User Memory Feature (Business Analyst's Aide-Mémoire)**
+  - Maintains evolving AI-generated notes about each user across conversations
+  - Captures user's domain knowledge, terminology, preferences, and communication patterns
+  - Does NOT capture project details (that's in conversation summaries)
+  - Memory automatically included in chat prompts for continuity ("Reqqy remembers me")
+  - Uses `updateOrCreate()` pattern to UPDATE/REFINE memory (not append)
+  - Created `user_memories` table with unique user_id constraint
+  - Created `UserMemory` model with `HasFactory` trait and relationships
+  - Updated `User` model with `memory()` hasOne relationship
+  - Created `UpdateUserMemoryJob` with sophisticated prompt emphasizing update over append
+  - Created two prompt templates for model-specific optimization:
+    - `resources/views/prompts/update-user-memory.blade.php` (Claude-optimized)
+    - `resources/views/prompts/update-user-memory-gpt.blade.php` (GPT-5-optimized)
+  - Created reusable partials in `resources/views/prompts/partials/`:
+    - `conversation-thread.blade.php` - Renders message loop
+    - `memory-context-intro.blade.php` - Shows application context
+  - Updated `chat3.blade.php` (active chat template) with user memory context
+  - Updated `LlmService::renderChatPrompt()` to eager load `user.memory`
+  - Created `UserMemoryFactory` for test data generation
+  - Integrated into `OrchestrateConversationWorkflow` in parallel with summary/PRD jobs
+- ✅ **Critical Bug Fix: Added `Batchable` Trait**
+  - Fixed RuntimeException when signing off conversations
+  - Added `use Batchable` trait to all batched jobs:
+    - `ResearchAlternativesJob`
+    - `GenerateNewApplicationPrdJob`
+    - `GenerateFeatureRequestPrdJob`
+    - `GenerateConversationSummaryJob`
+    - `UpdateUserMemoryJob`
+  - Laravel's `Bus::batch()` requires all jobs to implement `Batchable` trait
+- ✅ **Comprehensive Test Coverage**
+  - **GenerateConversationSummaryJobTest**: 4 tests passing with 7 assertions
+  - **UpdateUserMemoryJobTest**: 4 tests passing with 9 assertions
+  - Total: 8 new tests with 16 assertions (all passing)
+  - Uses `Prism::fake()` and `TextResponseFake` for LLM mocking
+  - Tests cover: happy paths, empty conversations, update vs create, chronological ordering
+- ✅ **Prompt Refactoring for DRY Code**
+  - Extracted common logic into reusable partials
+  - Created `resources/views/prompts/partials/conversation-thread.blade.php`
+  - Created `resources/views/prompts/partials/memory-context-intro.blade.php`
+  - Updated both memory prompts to use partials with `@include('prompts.partials.X')`
+  - Fixed hardcoded username in GPT prompt template (now uses `{{ $user->username }}`)
+- ✅ All code formatted with Laravel Pint
+- 💡 **Key Technical Decisions:**
+  - Both features use small/cheap model (Haiku) for cost efficiency on frequent operations
+  - No try-catch blocks: let exceptions bubble to Sentry for better visibility
+  - Memory stays concise (~1000 tokens max) via prompt guidance
+  - Model-specific prompts: separate templates for Claude vs GPT-5 optimization
+  - Prompt partials for DRY code and reusability
+  - Jobs use `ShouldQueue` + `Batchable` traits, run on 'short' queue
+  - Active chat template is `chat3.blade.php` (not `chat.blade.php`)
+- 💡 **Cost Optimization Strategy:**
+  - Small model (Haiku) for summary/memory generation: ~200-300 tokens each
+  - Large model (Sonnet) reserved for complex reasoning (chat, PRD generation)
+  - Runs after every conversation but costs minimal
+- 💡 **Model Behavior Insights:**
+  - GPT-5 tends toward structured/mechanical output without explicit coaching
+  - Successfully used GPT-5 meta-cognition: had it critique its own output and rewrite prompt
+  - Result: GPT-5-specific prompt with strict constraints (word counts, format rules, ASCII-only)
+  - Claude produces more natural, contextually-aware output by default
+- 📝 **What's Now Working:**
+  - ✅ Admins see at-a-glance summaries of all conversations
+  - ✅ Reqqy remembers users across conversations (continuity)
+  - ✅ Memory captures WHO users are, not WHAT they're building
+  - ✅ Summary + memory generation runs in parallel with PRD (non-blocking)
+  - ✅ Both features tested and production-ready
+- 📝 **Manual Step Required:** Run `lando php artisan migrate` to add `summary` column and `user_memories` table
+- 📝 **Files Created/Modified:**
+  - Migrations: `add_summary_to_conversations_table`, `create_user_memories_table`
+  - Jobs: `GenerateConversationSummaryJob`, `UpdateUserMemoryJob`
+  - Models: `UserMemory` (new), `Conversation` (updated), `User` (updated)
+  - Prompts: `generate-conversation-summary.blade.php`, `update-user-memory.blade.php`, `update-user-memory-gpt.blade.php`
+  - Partials: `prompts/partials/conversation-thread.blade.php`, `prompts/partials/memory-context-intro.blade.php`
+  - Views: `conversation-detail-page.blade.php` (updated)
+  - Service: `LlmService` (updated to eager load user.memory)
+  - Listener: `OrchestrateConversationWorkflow` (updated with new jobs)
+  - Tests: `GenerateConversationSummaryJobTest`, `UpdateUserMemoryJobTest`
+  - Factory: `UserMemoryFactory`
+  - Seeder: `TestDataSeeder` (updated with summaries)
+
 ## Outstanding MVP Tasks
 
 ### High Priority
