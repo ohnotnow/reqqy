@@ -55,6 +55,11 @@ class User extends Authenticatable
         return $this->hasMany(Conversation::class);
     }
 
+    public function memory(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(UserMemory::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->is_admin;

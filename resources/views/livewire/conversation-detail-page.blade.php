@@ -8,6 +8,13 @@
         {{-- Summary Section --}}
         <flux:card>
             <flux:heading size="lg" class="mb-4">Summary</flux:heading>
+
+            @if($conversation->summary)
+                <flux:callout color="zinc" icon="document-text" class="mb-6">
+                    {{ $conversation->summary }}
+                </flux:callout>
+            @endif
+
             <div class="grid gap-4">
                 <div>
                     <flux:text class="font-medium">Type</flux:text>

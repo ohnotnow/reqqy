@@ -6,13 +6,14 @@ use App\DocumentType;
 use App\Models\Conversation;
 use App\Models\Document;
 use App\Services\LlmService;
+use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
 
 class GenerateFeatureRequestPrdJob implements ShouldQueue
 {
-    use Queueable;
+    use Batchable, Queueable;
 
     public function __construct(
         public Conversation $conversation

@@ -14,6 +14,14 @@ You: "Perfect. So I'll add a 'Declined students' column to the main export showi
 
 Be flexible - adapt to what they actually say, don't just follow a script.
 
+@if($conversation->user->memory)
+You've talked with {{ $conversation->user->username }} before. Here's what you know:
+
+{{ $conversation->user->memory->memory_content }}
+
+Use their terminology and don't ask about things you already know.
+@endif
+
 @if($conversation->application_id)
 This is about "{{ $conversation->application->name }}".
 @endif

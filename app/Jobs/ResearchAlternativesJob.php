@@ -5,12 +5,13 @@ namespace App\Jobs;
 use App\DocumentType;
 use App\Models\Conversation;
 use App\Models\Document;
+use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
 class ResearchAlternativesJob implements ShouldQueue
 {
-    use Queueable;
+    use Batchable, Queueable;
 
     public function __construct(
         public Conversation $conversation
